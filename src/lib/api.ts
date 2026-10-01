@@ -25,7 +25,7 @@
  *   const courses = await getCourses('computer science');
  */
 
-import axios, { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import type { AdminDashboardData, AuthUser, ChatResponse, Course, CurrentAuthSession, PaginatedResponse, ResumeAnalysisResult, ResumeAnalysisStats, ResumeHistoryItem, University, UserProfile } from './types';
 import config from './config';
 import { API_BASE_URL, AUTH_API_BASE_URL } from './env';
@@ -113,6 +113,31 @@ function extractErrorMessage(error: AxiosError): string {
 
 apiClient.interceptors.request.use(attachCsrfToken);
 authClient.interceptors.request.use(attachCsrfToken);
+
+type CsrfRetryConfig = InternalAxiosRequestConfig & { _csrfRetried?: boolean };
+
+// Django rotates the CSRF token on login/logout, and the csrftoken cookie is
+// HttpOnly, so csrfTokenCache can go stale (e.g. another tab signed in or
+// out). If a request is rejected for CSRF, fetch a fresh token and retry once
+// instead of surfacing an error that only a page reload would clear.
+function retryOnCsrfFailure(client: AxiosInstance) {
+    client.interceptors.response.use(undefined, async (error: AxiosError) => {
+        const config = error.config as CsrfRetryConfig | undefined;
+        const detail = (error.response?.data as any)?.detail;
+        if (
+            config && !config._csrfRetried && error.response?.status === 403
+            && typeof detail === 'string' && detail.includes('CSRF')
+        ) {
+            config._csrfRetried = true;
+            await ensureCsrfToken();
+            return client.request(config);
+        }
+        return Promise.reject(error);
+    });
+}
+
+retryOnCsrfFailure(apiClient);
+retryOnCsrfFailure(authClient);
 
 /**
  * Response interceptor for global error handling
@@ -449,6 +474,16 @@ export async function ensureCsrfToken(): Promise<string> {
     return csrfTokenCache || '';
 }
 
+// login/register/logout rotate the CSRF token server-side - adopt the new
+// one, otherwise the next POST sends the old token and fails with a 403.
+async function adoptRotatedCsrfToken(data: any): Promise<void> {
+    if (data?.csrfToken) {
+        csrfTokenCache = data.csrfToken;
+    } else {
+        await ensureCsrfToken();
+    }
+}
+
 export async function loginUser(payload: { email: string; password: string; remember_me?: boolean; portal?: 'crm' | 'admin' }): Promise<{ user: AuthUser; redirect_url?: string; remember_me?: boolean }> {
     await ensureCsrfToken();
     const response = await authClient.post('/login/', {
@@ -463,12 +498,14 @@ export async function loginUser(payload: { email: string; password: string; reme
         // them in and bouncing them out client-side after the fact.
         portal: payload.portal ?? 'crm',
     });
+    await adoptRotatedCsrfToken(response.data);
     return response.data as { user: AuthUser; redirect_url?: string; remember_me?: boolean };
 }
 
 export async function registerUser(payload: { full_name: string; country: string; email: string; phone?: string; phone_country_code?: string; password1: string; password2: string; agree_terms: boolean }): Promise<{ user: AuthUser; redirect_url?: string }> {
     await ensureCsrfToken();
     const response = await authClient.post('/register/', payload);
+    await adoptRotatedCsrfToken(response.data);
     return response.data as { user: AuthUser; redirect_url?: string };
 }
 
@@ -479,7 +516,8 @@ export async function checkEmailDeliverability(email: string): Promise<{ valid: 
 
 export async function logoutUser(): Promise<void> {
     await ensureCsrfToken();
-    await authClient.post('/logout/', {});
+    const response = await authClient.post('/logout/', {});
+    await adoptRotatedCsrfToken(response.data);
 }
 
 export async function fetchCurrentUser(): Promise<CurrentAuthSession> {

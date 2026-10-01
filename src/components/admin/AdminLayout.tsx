@@ -50,7 +50,7 @@ const SidebarContent = ({ user, isFullAdmin, visibleItems, location, setSidebarO
             <TrendingUp className="w-5 h-5 text-amber-400" />
           </div>
           <div>
-            <p className="font-bold text-white text-sm leading-tight">EduAbroad AI</p>
+            <p className="font-bold text-white text-sm leading-tight">UniAdmissionHelp</p>
             <p className="text-[10px] text-white/50 capitalize">
               {isFullAdmin ? "Master Admin" : (user?.role?.replace("_", " ") ?? "Sub Admin")}
             </p>
