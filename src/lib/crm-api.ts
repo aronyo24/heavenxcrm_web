@@ -100,6 +100,7 @@ export interface StudentFilters {
   lead_source?: number | string
   is_lost?: boolean
   search?: string
+  ordering?: "newest" | "oldest" | "name" | "stage"
   page?: number
   limit?: number
 }

@@ -58,6 +58,7 @@ export interface StudentListItem {
   counselor_name: string | null
   lead_source: number | null
   lead_source_name: string | null
+  campaign: string
   priority: StudentPriority
   target_country: string
   target_degree: string
