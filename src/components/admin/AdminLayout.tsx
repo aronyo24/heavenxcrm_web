@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   Bot, FileText, Globe, LayoutDashboard,
   Users, Activity, LogOut, Menu, ChevronRight,
-  Bell, Settings, Shield, TrendingUp,
+  Bell, Settings, Shield, TrendingUp, Facebook,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -30,6 +30,7 @@ const navItems: NavItem[] = [
   { to: "/admin/activity",  label: "Activity Feed",icon: Activity },
   { to: "/admin/users",     label: "All Users",    icon: Users,           permissionKey: "view_all_records" },
   { to: "/admin/sub-admins",label: "Sub-Admins",   icon: Shield,          adminOnly: true },
+  { to: "/admin/integrations/facebook", label: "Facebook Leads", icon: Facebook, adminOnly: true },
 ]
 
 interface SidebarContentProps {

@@ -469,3 +469,109 @@ export async function cancelMyCallRequest(requestId: number): Promise<CallReques
   const response = await apiClient.post(`/crm/my/call-requests/${requestId}/cancel/`)
   return response.data
 }
+
+// ---------------------------------------------------------------------------
+// Facebook Lead Ads integration (full admins only)
+// ---------------------------------------------------------------------------
+
+export interface FacebookIntegrationState {
+  connected: boolean
+  enabled: boolean
+  source: "admin" | "env" | "none"
+  page: { id: string; name: string }
+  page_token_hint: string
+  connected_at: string | null
+  app_id: string
+  has_app_secret: boolean
+  app_secret_hint: string
+  verify_token: string
+  graph_api_version: string
+  webhook_url: string
+  last_sync_at: string | null
+  last_sync_result: Partial<FacebookSyncResult>
+  last_error: string
+  stats: {
+    total: number
+    created: number
+    merged: number
+    failed: number
+    last_7_days: number
+    last_lead_at: string | null
+  }
+}
+
+export interface FacebookSyncResult {
+  forms: number
+  created: number
+  merged: number
+  failed: number
+  skipped: number
+}
+
+export interface FacebookHealthCheck {
+  key: string
+  label: string
+  status: "ok" | "warn" | "fail"
+  detail: string
+  fix: string
+}
+
+export interface FacebookImportedLead {
+  id: number
+  status: "created" | "merged" | "failed"
+  via: "webhook" | "sync"
+  student: { id: number; name: string } | null
+  campaign: string
+  form_name: string
+  submitted_at: string | null
+  created_at: string
+  error: string
+}
+
+export type FacebookConnectResult =
+  | { status: "connected"; page: { id: string; name: string }; subscribed: boolean; subscribe_error?: string; state: FacebookIntegrationState }
+  | { status: "choose_page"; pages: { id: string; name: string }[]; state: FacebookIntegrationState }
+
+const FB = "/crm/facebook-integration"
+
+export async function fetchFacebookIntegration(): Promise<FacebookIntegrationState> {
+  return (await apiClient.get(`${FB}/settings/`)).data
+}
+
+export async function updateFacebookIntegration(
+  payload: Partial<{ app_id: string; app_secret: string; verify_token: string; graph_api_version: string; is_enabled: boolean }>
+): Promise<FacebookIntegrationState> {
+  return (await apiClient.patch(`${FB}/settings/`, payload)).data
+}
+
+export async function regenerateFacebookVerifyToken(): Promise<FacebookIntegrationState> {
+  return (await apiClient.post(`${FB}/verify-token/`)).data
+}
+
+export async function connectFacebookPage(accessToken: string, pageId?: string): Promise<FacebookConnectResult> {
+  return (await apiClient.post(`${FB}/connect/`, { access_token: accessToken, page_id: pageId })).data
+}
+
+export async function disconnectFacebookPage(): Promise<FacebookIntegrationState> {
+  return (await apiClient.post(`${FB}/disconnect/`)).data
+}
+
+export async function fetchFacebookHealth(): Promise<FacebookHealthCheck[]> {
+  return (await apiClient.get(`${FB}/health/`)).data.checks
+}
+
+export async function subscribeFacebookPage(): Promise<FacebookHealthCheck[]> {
+  return (await apiClient.post(`${FB}/subscribe/`)).data.checks
+}
+
+export async function syncFacebookLeadsNow(days: number): Promise<{ result: FacebookSyncResult; state: FacebookIntegrationState }> {
+  return (await apiClient.post(`${FB}/sync/`, { days })).data
+}
+
+export async function fetchFacebookImportedLeads(): Promise<FacebookImportedLead[]> {
+  return (await apiClient.get(`${FB}/leads/`)).data
+}
+
+export async function retryFailedFacebookLeads(): Promise<{ retried: number; still_failed: number; state: FacebookIntegrationState }> {
+  return (await apiClient.post(`${FB}/retry-failed/`)).data
+}

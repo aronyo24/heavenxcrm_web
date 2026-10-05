@@ -15,6 +15,7 @@ import StudentsList from "@/pages/crm/StudentsList";
 import StudentProfile from "@/pages/crm/StudentProfile";
 import ApplicationsList from "@/pages/crm/ApplicationsList";
 import CounselorManagement from "@/pages/crm/CounselorManagement";
+import FacebookIntegrationPage from "@/pages/crm/FacebookIntegration";
 import TasksBoard from "@/pages/crm/TasksBoard";
 import CommunicationsList from "@/pages/crm/CommunicationsList";
 import UniversitiesBrowse from "@/pages/crm/UniversitiesBrowse";
@@ -58,6 +59,8 @@ export default function App() {
               <Route path="communications" element={<CommunicationsList />} />
               <Route path="universities" element={<UniversitiesBrowse />} />
               <Route path="counselors" element={<RequireAdmin><CounselorManagement /></RequireAdmin>} />
+              {/* Moved to the admin panel - keep old links working. */}
+              <Route path="integrations/facebook" element={<Navigate to="/admin/integrations/facebook" replace />} />
               <Route path="tasks" element={<TasksBoard />} />
               <Route path="settings" element={<ProfileSettings />} />
             </Route>
@@ -70,6 +73,7 @@ export default function App() {
               <Route path="sub-admins" element={<SubAdminManagement />} />
               <Route path="users" element={<UsersList />} />
               <Route path="users/:id" element={<UserDetail />} />
+              <Route path="integrations/facebook" element={<FacebookIntegrationPage />} />
             </Route>
             <Route path="/" element={<Navigate to="/crm" replace />} />
             <Route path="*" element={<Navigate to="/crm" replace />} />
