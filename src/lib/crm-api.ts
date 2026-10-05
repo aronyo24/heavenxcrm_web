@@ -110,6 +110,14 @@ export async function fetchStudents(filters: StudentFilters = {}): Promise<CrmPa
   return response.data
 }
 
+// Pulls new Facebook lead-form leads into the CRM now - a backstop for the
+// Meta webhook. Throttled server-side: `checked` is false when a sync ran
+// moments ago (or Facebook isn't configured).
+export async function syncFacebookLeads(): Promise<{ checked: boolean; created: number }> {
+  const response = await apiClient.post("/crm/facebook/sync/")
+  return response.data
+}
+
 export async function fetchStudent(id: number | string): Promise<Student> {
   const response = await apiClient.get(`/crm/students/${id}/`)
   return response.data

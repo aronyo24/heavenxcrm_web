@@ -17,7 +17,8 @@ import { QuickChatDialog } from "@/components/crm/QuickChatDialog"
 import { useAuth } from "@/lib/auth"
 import { formatScheduledTime } from "@/lib/call-reminder"
 import {
-  assignStudentCounselor, fetchCounselors, fetchLeadSources, fetchPipelineStages, fetchStudents, type StudentFilters,
+  assignStudentCounselor, fetchCounselors, fetchLeadSources, fetchPipelineStages, fetchStudents, syncFacebookLeads,
+  type StudentFilters,
 } from "@/lib/crm-api"
 import type { Counselor, LeadSource, PipelineStage, StudentListItem } from "@/lib/crm-types"
 
@@ -224,6 +225,20 @@ export default function StudentsList() {
   useEffect(() => {
     void loadLookups()
   }, [loadLookups])
+
+  // Leads from Facebook ad forms arrive by webhook; this catches any the
+  // webhook missed. Reload only if something new actually came in.
+  useEffect(() => {
+    syncFacebookLeads()
+      .then(({ created }) => {
+        if (created > 0) {
+          toast.success(`${created} new Facebook lead${created > 1 ? "s" : ""} added`)
+          void loadStudents()
+        }
+      })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per visit, not per filter change
+  }, [])
 
   useEffect(() => {
     void loadStudents()

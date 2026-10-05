@@ -21,6 +21,7 @@ import { ActivityTimeline } from "@/components/crm/ActivityTimeline"
 import { MessageThread } from "@/components/MessageThread"
 import { MeetingsPanel } from "@/components/crm/MeetingsPanel"
 import { CallRequestManager } from "@/components/crm/CallRequestManager"
+import { LeadFormCard } from "@/components/crm/LeadFormCard"
 import {
   assignStudentCounselor, changeApplicationStatus, changeStudentStage, completeTask,
   fetchCounselors, fetchPipelineStages, fetchStudent, fetchStudentApplications, fetchStudentMessages,
@@ -268,6 +269,8 @@ export default function StudentProfile() {
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          <LeadFormCard leadForm={student.lead_form} />
+
           <div className="rounded-2xl border bg-card p-5 shadow-sm">
             <h3 className="font-semibold mb-4 flex items-center gap-2">
               <GraduationCap className="w-4 h-4 text-primary" /> Academic Profile

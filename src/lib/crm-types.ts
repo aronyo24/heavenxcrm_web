@@ -46,6 +46,17 @@ export interface CounselorPerformance {
 
 export type StudentPriority = "low" | "medium" | "high"
 
+// The ad lead form a student submitted, with the form's original questions
+// (see apps/crm/facebook_leads.py). Empty object for leads added by hand.
+export interface LeadForm {
+  source: "facebook"
+  form_name: string
+  campaign: string
+  ad_name: string
+  submitted_at: string | null
+  answers: { question: string; answer: string }[]
+}
+
 export interface StudentListItem {
   id: number
   full_name: string
@@ -85,6 +96,7 @@ export interface Student extends StudentListItem {
   budget_max: number | null
   budget_currency: string
   campaign: string
+  lead_form: LeadForm | Record<string, never>
   notes: string
   tags: string[]
   lost_reason: string
