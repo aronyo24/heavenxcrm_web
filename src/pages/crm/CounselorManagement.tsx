@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react"
-import { Plus } from "lucide-react"
+import { Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog"
 import { PersonAvatar } from "@/components/crm/PersonAvatar"
-import { createCounselor, fetchCounselorPerformance, fetchCounselors, updateCounselor } from "@/lib/crm-api"
+import { createCounselor, deleteCounselor, fetchCounselorPerformance, fetchCounselors, updateCounselor } from "@/lib/crm-api"
 import type { Counselor, CounselorPerformance } from "@/lib/crm-types"
 import { useAuth } from "@/lib/auth"
+import { PageHeader } from "@/components/crm/PageHeader"
 
 export default function CounselorManagement() {
   const { user } = useAuth()
@@ -24,6 +25,8 @@ export default function CounselorManagement() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ new_user_full_name: "", new_user_email: "", new_user_password: "", employee_code: "" })
   const [performance, setPerformance] = useState<Record<number, CounselorPerformance>>({})
+  const [removing, setRemoving] = useState<Counselor | null>(null)
+  const [removeBusy, setRemoveBusy] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -67,13 +70,27 @@ export default function CounselorManagement() {
     }
   }
 
+  const handleRemove = async () => {
+    if (!removing) return
+    setRemoveBusy(true)
+    try {
+      const res = await deleteCounselor(removing.id)
+      const parts = [`${res.released_students} student${res.released_students === 1 ? "" : "s"} moved to Leads`]
+      if (res.reassigned_tasks) parts.push(`${res.reassigned_tasks} open task${res.reassigned_tasks === 1 ? "" : "s"} reassigned to you`)
+      toast.success(`${removing.full_name} removed`, { description: parts.join(" · ") })
+      setRemoving(null)
+      await load()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to remove counselor")
+    } finally {
+      setRemoveBusy(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Counselors</h1>
-          <p className="text-sm text-muted-foreground">Manage counselor accounts and caseloads.</p>
-        </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <PageHeader eyebrow="Team" title="Counselors" description="Counselor accounts, caseloads and capacity." />
         {isFullAdmin && (
           <Dialog open={showForm} onOpenChange={setShowForm}>
             <DialogTrigger asChild>
@@ -117,10 +134,19 @@ export default function CounselorManagement() {
                     <p className="text-sm text-muted-foreground mt-1">{counselor.email}</p>
                   </div>
                 </div>
-                {isFullAdmin && (
-                  <Button variant="outline" size="sm" onClick={() => void toggleActive(counselor)}>
-                    {counselor.is_active ? "Deactivate" : "Activate"}
-                  </Button>
+                {isFullAdmin && counselor.user_id !== user?.id && (
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => void toggleActive(counselor)}>
+                      {counselor.is_active ? "Deactivate" : "Activate"}
+                    </Button>
+                    <Button
+                      variant="outline" size="sm"
+                      className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-500/10"
+                      onClick={() => setRemoving(counselor)}
+                    >
+                      <Trash2 className="w-4 h-4 mr-1.5" /> Remove
+                    </Button>
+                  </div>
                 )}
               </div>
 
@@ -139,6 +165,26 @@ export default function CounselorManagement() {
           </div>
         )}
       </div>
+
+      <Dialog open={removing != null} onOpenChange={(open) => { if (!open && !removeBusy) setRemoving(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove {removing?.full_name}?</DialogTitle>
+            <DialogDescription>
+              They will lose access to the CRM straight away. Their{" "}
+              {removing?.active_student_count ?? 0} active student{removing?.active_student_count === 1 ? "" : "s"} will
+              move back to Leads so you can reassign them, and their open tasks will be reassigned to you.
+              Past notes, messages and activity are kept.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRemoving(null)} disabled={removeBusy}>Cancel</Button>
+            <Button variant="destructive" onClick={() => void handleRemove()} disabled={removeBusy}>
+              {removeBusy ? "Removing…" : "Remove counselor"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

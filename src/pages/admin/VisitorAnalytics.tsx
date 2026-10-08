@@ -8,6 +8,7 @@ import { ChartEmpty } from "@/components/admin/ChartEmpty"
 import { SummaryCards } from "@/components/admin/SummaryCards"
 import { Globe, Monitor, Smartphone, Tablet } from "lucide-react"
 import { apiClient, fetchVisitorHeatmap, getExportReportUrl } from "@/lib/api"
+import { PageHeader } from "@/components/crm/PageHeader"
 
 const RANGE_OPTIONS = [
   { value: "day",   label: "Day",      unit: "today" },
@@ -65,28 +66,31 @@ export default function VisitorAnalytics() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Visitor Analytics</h1>
-          <p className="text-sm text-muted-foreground">World map data and country rankings</p>
-        </div>
-        <div className="flex gap-2">
-          <Select value={range} onValueChange={(v) => setRange(v as RangeValue)}>
-            <SelectTrigger className="w-32"><SelectValue placeholder="Range" /></SelectTrigger>
-            <SelectContent>
-              {RANGE_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm" onClick={() => void load(range)} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <a href={getExportReportUrl("activity")} download><Download className="w-4 h-4 mr-2" /> Export</a>
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Analytics"
+        title="Visitors"
+        description="Website traffic by country and over time"
+        actions={
+          <>
+            <div className="flex gap-2">
+              <Select value={range} onValueChange={(v) => setRange(v as RangeValue)}>
+                <SelectTrigger className="w-32"><SelectValue placeholder="Range" /></SelectTrigger>
+                <SelectContent>
+                  {RANGE_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" onClick={() => void load(range)} disabled={loading}>
+                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <a href={getExportReportUrl("activity")} download><Download className="w-4 h-4 mr-2" /> Export</a>
+              </Button>
+            </div>
+          </>
+        }
+      />
 
       <SummaryCards cards={[
         { label: "Total Visitors", value: heatmap?.total  ?? (stats?.total_visitors as number) ?? 0, icon: Globe },

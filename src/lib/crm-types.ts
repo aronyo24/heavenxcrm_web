@@ -143,6 +143,8 @@ export interface Application extends Omit<ApplicationListItem, "student_name" | 
   english_score: number | null
   personal_statement: string
   resume: string | null
+  /** CV on the student's site account - shown when the application has none. */
+  profile_resume: string | null
   reviewed_by: number | null
   reviewed_by_name: string | null
   review_notes: string

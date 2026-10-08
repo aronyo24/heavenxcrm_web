@@ -11,6 +11,7 @@ import { SummaryCards } from "@/components/admin/SummaryCards"
 import { Bot, MessageSquare, Clock } from "lucide-react"
 import { fetchChatbotAnalytics, fetchChatLogs, getExportReportUrl } from "@/lib/api"
 import type { ChatbotAnalytics } from "@/lib/types"
+import { PageHeader } from "@/components/crm/PageHeader"
 
 const COLORS = ["#6366f1", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444"]
 
@@ -60,20 +61,23 @@ export default function ChatbotAnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Chatbot Analytics</h1>
-          <p className="text-sm text-muted-foreground">Prompt collection and reporting</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <a href={getExportReportUrl("chat")} download><Download className="w-4 h-4 mr-2" /> Export CSV</a>
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Analytics"
+        title="Chatbot"
+        description="What students ask the AI advisor, by topic and keyword"
+        actions={
+          <>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
+                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <a href={getExportReportUrl("chat")} download><Download className="w-4 h-4 mr-2" /> Export CSV</a>
+              </Button>
+            </div>
+          </>
+        }
+      />
 
       <SummaryCards cards={[
         { label: "Total Prompts",  value: data?.total_prompts        ?? 0, icon: MessageSquare },

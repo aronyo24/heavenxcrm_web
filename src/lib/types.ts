@@ -250,7 +250,39 @@ export interface ChartDataPoint {
     value?: number;
 }
 
+export interface PeriodCount {
+    current: number;
+    previous: number;
+    change_pct: number | null;
+}
+
+export interface BusinessOverview {
+    days: number;
+    kpis: Record<"visitors" | "leads" | "applications" | "enrolled", PeriodCount>;
+    trend: Array<{ date: string; visitors: number; leads: number; applications: number }>;
+    funnel: Array<{ key: string; label: string; count: number; is_won: boolean }>;
+    lead_sources: Array<{
+        name: string; category: string; total: number; recent: number; won: number; conversion_pct: number;
+    }>;
+    leads_without_source: number;
+    counselors: Array<{
+        id: number; name: string; email: string; active: number; capacity: number;
+        new: number; enrolled: number; tasks_done: number; tasks_overdue: number;
+    }>;
+    attention: {
+        unassigned_leads: number;
+        stale_unassigned: number;
+        overdue_tasks: number;
+        stuck_students: number;
+        pending_applications: number;
+        documents_requested: number;
+    };
+    totals: { students: number; open: number; won: number; lost: number; conversion_pct: number };
+    applications_by_status: Array<{ status: string; count: number }>;
+}
+
 export interface AdminDashboardData {
+    business: BusinessOverview;
     summary: Record<string, number>;
     visitor_countries: Array<{
         country: string;

@@ -8,6 +8,7 @@ import { PersonAvatar } from "@/components/crm/PersonAvatar"
 import { SendEmailDialog } from "@/components/crm/SendEmailDialog"
 import { parseEmailReply, type QuoteAttribution } from "@/lib/email-reply"
 import type { CommunicationLog } from "@/lib/crm-types"
+import { studentPath } from "@/lib/student-url"
 
 const URL_RE = /(https?:\/\/[^\s<>()]+[^\s<>().,;:!?'"])/g
 
@@ -178,7 +179,7 @@ export function InboundEmailCard({
         />
         {showStudentLink && (
           <Button size="sm" variant="ghost" className="h-8" asChild>
-            <Link to={`/crm/students/${log.student}`}>
+            <Link to={studentPath(log.student, log.student_name)}>
               <UserRound className="w-3.5 h-3.5 mr-1.5" /> View student
             </Link>
           </Button>

@@ -16,6 +16,7 @@ import {
   syncFacebookLeadsNow, updateFacebookIntegration,
   type FacebookHealthCheck, type FacebookImportedLead, type FacebookIntegrationState,
 } from "@/lib/crm-api"
+import { studentPath } from "@/lib/student-url"
 
 const errorMessage = (err: unknown, fallback: string) => (err instanceof Error ? err.message : fallback)
 
@@ -558,7 +559,7 @@ export default function FacebookIntegrationPage() {
                   <tr key={lead.id} className="align-top">
                     <td className="px-5 py-3">
                       {lead.student ? (
-                        <Link to={`/crm/students/${lead.student.id}`} className="font-medium text-primary hover:underline">
+                        <Link to={studentPath(lead.student.id, lead.student.name)} className="font-medium text-primary hover:underline">
                           {lead.student.name}
                         </Link>
                       ) : (

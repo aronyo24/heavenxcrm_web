@@ -1,161 +1,171 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import {
-  Bot, FileText, Globe, LayoutDashboard,
-  Users, Activity, LogOut, Menu, ChevronRight,
-  Bell, Settings, Shield, TrendingUp, Facebook,
-} from "lucide-react"
+import { ArrowUpRight, LogOut, Menu, Search, ShieldCheck, X } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { CommandPalette } from "@/components/crm/CommandPalette"
+import { Toaster } from "@/components/ui/sonner"
 import { useAuth } from "@/lib/auth"
-import type { AdminPermissions } from "@/lib/types"
-
-interface NavItem {
-  to: string
-  label: string
-  icon: React.ElementType
-  exact?: boolean
-  adminOnly?: boolean
-  permissionKey?: string
-  badge?: string
-}
-
-const navItems: NavItem[] = [
-  { to: "/admin",           label: "Dashboard",    icon: LayoutDashboard, exact: true },
-  { to: "/admin/visitors",  label: "Visitors",     icon: Globe,           permissionKey: "view_analytics" },
-  { to: "/admin/submissions",label: "Reports",     icon: FileText,        permissionKey: "view_all_records" },
-  { to: "/admin/chatbot",   label: "Chatbot Logs", icon: Bot,             permissionKey: "view_all_records" },
-  { to: "/admin/activity",  label: "Activity Feed",icon: Activity },
-  { to: "/admin/users",     label: "All Users",    icon: Users,           permissionKey: "view_all_records" },
-  { to: "/admin/sub-admins",label: "Sub-Admins",   icon: Shield,          adminOnly: true },
-  { to: "/admin/integrations/facebook", label: "Facebook Leads", icon: Facebook, adminOnly: true },
-]
+import { ADMIN_NAV_ITEMS, ADMIN_NAV_SECTIONS, isAdminNavActive, type AdminNavItem } from "@/lib/admin-nav"
+import { cn } from "@/lib/utils"
 
 interface SidebarContentProps {
-  user: { full_name?: string | null; email?: string | null; role?: string | null; permissions?: AdminPermissions } | null;
-  isFullAdmin: boolean;
-  visibleItems: NavItem[];
-  location: { pathname: string };
-  setSidebarOpen: (open: boolean) => void;
-  handleLogout: () => void;
+  user: { full_name?: string | null; email?: string | null; is_crm_staff?: boolean } | null
+  roleLabel: string
+  visibleItems: AdminNavItem[]
+  pathname: string
+  onNavigate: () => void
+  onLogout: () => void
+  onSearch: () => void
 }
 
-const SidebarContent = ({ user, isFullAdmin, visibleItems, location, setSidebarOpen, handleLogout }: SidebarContentProps) => (
-    <div className="flex flex-col h-full">
-      {/* Brand */}
-      <div className="px-5 py-5 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-amber-400" />
-          </div>
-          <div>
-            <p className="font-bold text-white text-sm leading-tight">UniAdmissionHelp</p>
-            <p className="text-[10px] text-white/50 capitalize">
-              {isFullAdmin ? "Master Admin" : (user?.role?.replace("_", " ") ?? "Sub Admin")}
-            </p>
-          </div>
-        </div>
+const SidebarContent = ({
+  user, roleLabel, visibleItems, pathname, onNavigate, onLogout, onSearch,
+}: SidebarContentProps) => (
+  <div className="flex h-full flex-col">
+    <div className="flex items-center gap-3 px-5 py-5">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-300 to-amber-500 shadow-lg shadow-amber-900/30">
+        <ShieldCheck className="h-5 w-5 text-[#13204a]" />
       </div>
-
-      {/* User card */}
-      <div className="mx-3 mt-3 p-3 rounded-xl bg-white/5 border border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-[#1A2B5F] font-bold text-xs flex-shrink-0">
-            {(user?.full_name || user?.email || "A")[0].toUpperCase()}
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-white truncate">{user?.full_name || user?.email}</p>
-            <p className="text-[10px] text-white/50 truncate">{user?.email}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        <p className="px-2 mb-2 text-[10px] font-semibold uppercase tracking-widest text-white/30">Navigation</p>
-        {visibleItems.map((item) => {
-          const active = item.exact
-            ? location.pathname === item.to
-            : location.pathname.startsWith(item.to)
-          return (
-            <Link
-              key={item.to}
-              to={item.to}
-              onClick={() => setSidebarOpen(false)}
-              className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
-                active
-                  ? "bg-amber-400/15 text-amber-300 border border-amber-400/20"
-                  : "text-white/60 hover:text-white hover:bg-white/8"
-              }`}
-            >
-              <item.icon className={`w-4 h-4 flex-shrink-0 ${active ? "text-amber-400" : "group-hover:text-white/80"}`} />
-              <span className="flex-1">{item.label}</span>
-              {active && <ChevronRight className="w-3 h-3 text-amber-400/60" />}
-              {item.badge && (
-                <span className="text-[10px] px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded-full">{item.badge}</span>
-              )}
-            </Link>
-          )
-        })}
-      </nav>
-
-      {/* Footer actions */}
-      <div className="px-3 pb-4 border-t border-white/10 pt-3 space-y-1">
-        <Link
-          to="/crm"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/50 hover:text-white hover:bg-white/8 transition-all"
-        >
-          <Settings className="w-4 h-4" />
-          CRM Dashboard
-        </Link>
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400/70 hover:text-red-300 hover:bg-red-500/10 transition-all"
-        >
-          <LogOut className="w-4 h-4" />
-          Sign Out
-        </button>
-        <div className="flex items-center justify-between px-3 pt-2">
-          <span className="text-[10px] text-white/30">Theme</span>
-          <ThemeToggle />
-        </div>
+      <div className="min-w-0">
+        <p className="text-sm font-bold leading-tight text-white">UniAdmission</p>
+        <p className="text-[11px] leading-tight text-white/45">Admin console</p>
       </div>
     </div>
-  )
+
+    <div className="px-3">
+      <button
+        type="button"
+        onClick={onSearch}
+        className="flex w-full items-center gap-2.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-left text-sm text-white/50 transition-colors hover:border-white/20 hover:text-white/80"
+      >
+        <Search className="h-4 w-4" />
+        <span className="flex-1">Quick jump…</span>
+        <kbd className="rounded border border-white/15 px-1.5 text-[10px] font-medium">Ctrl K</kbd>
+      </button>
+    </div>
+
+    <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-5">
+      {ADMIN_NAV_SECTIONS.map((section) => {
+        const items = visibleItems.filter((i) => i.section === section)
+        if (items.length === 0) return null
+        return (
+          <div key={section}>
+            <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/30">{section}</p>
+            <div className="space-y-0.5">
+              {items.map((item) => {
+                const active = isAdminNavActive(item, pathname)
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    onClick={onNavigate}
+                    className={cn(
+                      "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      active ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5 hover:text-white",
+                    )}
+                  >
+                    {active && <span className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-amber-400" />}
+                    <item.icon className={cn("h-4 w-4 flex-shrink-0", active ? "text-amber-400" : "text-white/45 group-hover:text-white/80")} />
+                    <span className="flex-1">{item.label}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })}
+    </nav>
+
+    <div className="space-y-1 border-t border-white/10 p-3">
+      {user?.is_crm_staff && (
+        <Link
+          to="/crm"
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-white/55 transition-colors hover:bg-white/5 hover:text-white"
+        >
+          <ArrowUpRight className="h-4 w-4" />
+          Open CRM workspace
+        </Link>
+      )}
+      <div className="flex items-center gap-3 rounded-xl bg-white/5 p-2.5">
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-xs font-bold text-[#13204a]">
+          {(user?.full_name || user?.email || "A")[0].toUpperCase()}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-white">{user?.full_name || user?.email}</p>
+          <p className="truncate text-[11px] capitalize text-white/45">{roleLabel}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onLogout}
+          title="Sign out"
+          className="rounded-md p-1.5 text-white/45 transition-colors hover:bg-red-500/15 hover:text-red-300"
+        >
+          <LogOut className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  </div>
+)
 
 export function AdminLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
 
   const isFullAdmin = user?.role === "admin"
   const perms = user?.permissions || {}
+  const roleLabel = isFullAdmin ? "Master admin" : (user?.role?.replace("_", " ") ?? "Sub-admin")
 
-  const visibleItems = navItems.filter((item) => {
+  const visibleItems = ADMIN_NAV_ITEMS.filter((item) => {
     if (item.adminOnly && !isFullAdmin) return false
-    if (item.permissionKey && !isFullAdmin && !perms[item.permissionKey as keyof typeof perms]) return false
+    if (item.permissionKey && !isFullAdmin && !perms[item.permissionKey]) return false
     return true
   })
+  const current = visibleItems.find((i) => isAdminNavActive(i, location.pathname))
+
+  // Ctrl/Cmd+K opens quick jump from anywhere in the admin console.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault()
+        setSearchOpen((o) => !o)
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [])
 
   const handleLogout = async () => {
     await logout()
     navigate("/admin/login")
   }
 
-
+  const sidebarProps: SidebarContentProps = {
+    user, roleLabel, visibleItems, pathname: location.pathname,
+    onNavigate: () => setSidebarOpen(false),
+    onLogout: () => void handleLogout(),
+    onSearch: () => { setSidebarOpen(false); setSearchOpen(true) },
+  }
 
   return (
-    <div className="min-h-screen pt-16 bg-background">
+    <div className="min-h-screen bg-background">
+      <Toaster position="top-right" richColors />
+      <CommandPalette
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        pages={visibleItems}
+        searchStudents={!!user?.is_crm_staff}
+      />
       <div className="flex">
-        {/* Desktop Sidebar */}
-        <aside className="hidden lg:flex w-64 flex-col border-r border-border/40 bg-[#1A2B5F] min-h-[calc(100vh-4rem)] sticky top-16 overflow-hidden">
-          <SidebarContent user={user} isFullAdmin={isFullAdmin} visibleItems={visibleItems} location={location} setSidebarOpen={setSidebarOpen} handleLogout={handleLogout} />
+        <aside className="sticky top-0 hidden h-screen w-64 flex-shrink-0 flex-col overflow-hidden bg-[#13204a] print:hidden lg:flex">
+          <SidebarContent {...sidebarProps} />
         </aside>
 
-        {/* Mobile sidebar overlay */}
         <AnimatePresence>
           {sidebarOpen && (
             <>
@@ -171,33 +181,52 @@ export function AdminLayout() {
                 animate={{ x: 0 }}
                 exit={{ x: -280 }}
                 transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                className="fixed inset-y-0 left-0 z-50 w-72 bg-[#1A2B5F] lg:hidden flex flex-col overflow-hidden pt-16"
+                className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col overflow-hidden bg-[#13204a] lg:hidden"
               >
-                <SidebarContent user={user} isFullAdmin={isFullAdmin} visibleItems={visibleItems} location={location} setSidebarOpen={setSidebarOpen} handleLogout={handleLogout} />
+                <button
+                  type="button"
+                  onClick={() => setSidebarOpen(false)}
+                  className="absolute right-3 top-5 rounded-md p-1.5 text-white/50 hover:bg-white/10 hover:text-white"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                <SidebarContent {...sidebarProps} />
               </motion.aside>
             </>
           )}
         </AnimatePresence>
 
-        {/* Main content */}
-        <main className="flex-1 min-w-0">
-          {/* Top bar (mobile) */}
-          <div className="lg:hidden flex items-center gap-3 px-4 py-3 border-b bg-card/80 sticky top-16 z-30 backdrop-blur">
-            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)} className="h-8 w-8">
-              <Menu className="w-4 h-4" />
+        <main className="min-w-0 flex-1">
+          <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/85 px-4 backdrop-blur print:hidden sm:px-6 lg:px-8">
+            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)} className="h-8 w-8 lg:hidden">
+              <Menu className="h-4 w-4" />
             </Button>
-            <span className="font-semibold text-sm">Admin Panel</span>
-            <div className="ml-auto flex items-center gap-2">
-              <Bell className="w-4 h-4 text-muted-foreground" />
+            <div className="flex min-w-0 items-center gap-2 text-sm">
+              <span className="hidden text-muted-foreground sm:inline">Admin</span>
+              <span className="hidden text-muted-foreground/50 sm:inline">/</span>
+              <span className="truncate font-semibold">{current?.label ?? "User"}</span>
             </div>
-          </div>
+
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="ml-auto flex h-9 items-center gap-2 rounded-lg border bg-card px-3 text-sm text-muted-foreground shadow-sm transition-colors hover:text-foreground md:w-72"
+            >
+              <Search className="h-4 w-4" />
+              <span className="hidden flex-1 text-left md:inline">
+                {user?.is_crm_staff ? "Search students or pages…" : "Jump to a page…"}
+              </span>
+              <kbd className="hidden rounded border bg-muted px-1.5 text-[10px] font-medium md:inline">Ctrl K</kbd>
+            </button>
+            <ThemeToggle />
+          </header>
 
           <motion.div
             key={location.pathname}
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.18 }}
-            className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto"
+            className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8 print:max-w-none print:p-0"
           >
             <Outlet />
           </motion.div>

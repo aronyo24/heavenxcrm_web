@@ -847,9 +847,9 @@ export async function trackActivityEvent(params: {
 /**
  * Fetch admin dashboard data
  */
-export async function fetchAdminDashboard(): Promise<AdminDashboardData> {
+export async function fetchAdminDashboard(days = 30): Promise<AdminDashboardData> {
     await ensureCsrfToken();
-    const response = await apiClient.get('/admin/dashboard/');
+    const response = await apiClient.get('/admin/dashboard/', { params: { days } });
     return response.data as AdminDashboardData;
 }
 

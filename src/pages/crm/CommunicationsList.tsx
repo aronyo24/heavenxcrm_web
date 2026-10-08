@@ -15,6 +15,8 @@ import { InboundEmailCard } from "@/components/crm/InboundEmailCard"
 import { replyPreview } from "@/lib/email-reply"
 import { fetchCommunications, syncInbox, type CommunicationFilters } from "@/lib/crm-api"
 import type { CommunicationChannel, CommunicationDirection, CommunicationLog, CommunicationStatus } from "@/lib/crm-types"
+import { studentPath } from "@/lib/student-url"
+import { PageHeader } from "@/components/crm/PageHeader"
 
 const CHANNEL_META: Record<CommunicationChannel, { label: string; icon: React.ElementType }> = {
   email: { label: "Email", icon: Mail },
@@ -115,7 +117,7 @@ function CommunicationRow({ log, onChanged }: { log: CommunicationLog; onChanged
 
           <div className="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
             <Link
-              to={`/crm/students/${log.student}`}
+              to={studentPath(log.student, log.student_name)}
               onClick={(e) => e.stopPropagation()}
               className="text-primary hover:underline"
             >
@@ -226,31 +228,30 @@ export default function CommunicationsList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold">Communications</h1>
-          <p className="text-sm text-muted-foreground">
-            Every email, call, and logged touchpoint across every student - including replies students send back.
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => void checkForReplies(true)} disabled={syncing}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
-          {syncing ? "Checking inbox..." : "Check for replies"}
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="Conversations"
+        title="Communications"
+        description="Every email, call and logged touchpoint with your students, including their replies."
+        actions={
+          <Button variant="outline" size="sm" className="h-9 shadow-sm" onClick={() => void checkForReplies(true)} disabled={syncing}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Checking inbox…" : "Check for replies"}
+          </Button>
+        }
+      />
 
-      <div className="flex flex-col lg:flex-row gap-3">
+      <div className="flex flex-col gap-2.5 rounded-xl border bg-card p-3 shadow-sm lg:flex-row lg:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            className="pl-9"
-            placeholder="Search by student, email, or subject..."
+            className="h-9 border-slate-200 bg-slate-50 pl-9 shadow-none focus-visible:bg-background dark:border-white/10 dark:bg-white/5"
+            placeholder="Search by student, email or subject…"
             value={search}
             onChange={(e) => { setPage(1); setSearch(e.target.value) }}
           />
         </div>
         <Select value={channel} onValueChange={(v) => { setPage(1); setChannel(v) }}>
-          <SelectTrigger className="w-full lg:w-44"><SelectValue placeholder="All channels" /></SelectTrigger>
+          <SelectTrigger className="h-9 w-full lg:w-44 shadow-none"><SelectValue placeholder="All channels" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All channels</SelectItem>
             {(Object.keys(CHANNEL_META) as CommunicationChannel[]).map((c) => (
@@ -259,7 +260,7 @@ export default function CommunicationsList() {
           </SelectContent>
         </Select>
         <Select value={direction} onValueChange={(v) => { setPage(1); setDirection(v) }}>
-          <SelectTrigger className="w-full lg:w-40"><SelectValue placeholder="All directions" /></SelectTrigger>
+          <SelectTrigger className="h-9 w-full lg:w-40 shadow-none"><SelectValue placeholder="All directions" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Inbound &amp; Outbound</SelectItem>
             <SelectItem value="inbound">Inbound (replies)</SelectItem>
@@ -267,7 +268,7 @@ export default function CommunicationsList() {
           </SelectContent>
         </Select>
         <Select value={status} onValueChange={(v) => { setPage(1); setStatus(v) }}>
-          <SelectTrigger className="w-full lg:w-36"><SelectValue placeholder="All statuses" /></SelectTrigger>
+          <SelectTrigger className="h-9 w-full lg:w-36 shadow-none"><SelectValue placeholder="All statuses" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
             <SelectItem value="sent">Sent</SelectItem>
@@ -276,7 +277,7 @@ export default function CommunicationsList() {
           </SelectContent>
         </Select>
         <Select value={ordering} onValueChange={(v) => setOrdering(v as CommunicationFilters["ordering"])}>
-          <SelectTrigger className="w-full lg:w-44 gap-1.5">
+          <SelectTrigger className="h-9 w-full lg:w-44 gap-1.5 shadow-none">
             <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground" />
             <SelectValue />
           </SelectTrigger>

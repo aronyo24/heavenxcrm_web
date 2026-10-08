@@ -178,14 +178,14 @@ export function QuickAddStudentDialog({
                 name="stage"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Pipeline stage</FormLabel>
+                    <FormLabel>Status</FormLabel>
                     <Select
                       value={field.value != null ? String(field.value) : ""}
                       onValueChange={(v) => field.onChange(Number(v))}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select stage" />
+                          <SelectValue placeholder="Select status" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>

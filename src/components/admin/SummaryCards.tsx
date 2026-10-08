@@ -1,29 +1,28 @@
-import { motion } from "framer-motion"
 import type { LucideIcon } from "lucide-react"
+import { StatTile, type StatTone } from "@/components/crm/StatTile"
 
 interface Card {
   label: string
   value: string | number
   icon: LucideIcon
+  hint?: string
 }
+
+// Same KPI tile as the CRM and the admin dashboard, toned in a fixed order.
+const TONES: StatTone[] = ["sky", "violet", "emerald", "amber"]
 
 export function SummaryCards({ cards }: { cards: Card[] }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {cards.map((card, i) => (
-        <motion.div
+        <StatTile
           key={card.label}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.05 }}
-          className="rounded-2xl border bg-card p-5 shadow-sm"
-        >
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-sm">{card.label}</span>
-            <card.icon className="w-4 h-4" />
-          </div>
-          <div className="mt-2 text-2xl font-bold text-foreground">{card.value}</div>
-        </motion.div>
+          label={card.label}
+          value={typeof card.value === "number" ? card.value.toLocaleString() : card.value}
+          hint={card.hint}
+          icon={card.icon}
+          tone={TONES[i % TONES.length]}
+        />
       ))}
     </div>
   )

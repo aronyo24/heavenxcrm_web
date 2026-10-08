@@ -6,6 +6,7 @@ import { ChartCard } from "@/components/admin/ChartCard"
 import { ChartEmpty } from "@/components/admin/ChartEmpty"
 import { fetchActivityFeed, getExportReportUrl } from "@/lib/api"
 import type { ActivityEvent } from "@/lib/types"
+import { PageHeader } from "@/components/crm/PageHeader"
 
 export default function ActivityFeedPage() {
   const [activity, setActivity] = useState<ActivityEvent[]>([])
@@ -47,20 +48,23 @@ export default function ActivityFeedPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Live Activity Feed</h1>
-          <p className="text-sm text-muted-foreground">Page views, clicks, and form submissions</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <a href={getExportReportUrl("activity")} download><Download className="w-4 h-4 mr-2" /> Export CSV</a>
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Overview"
+        title="Live activity"
+        description="Page views, clicks and form submissions as they happen"
+        actions={
+          <>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
+                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <a href={getExportReportUrl("activity")} download><Download className="w-4 h-4 mr-2" /> Export CSV</a>
+              </Button>
+            </div>
+          </>
+        }
+      />
 
       <ChartCard title="Most Visited Pages">
         {pagePopularity.length === 0 ? (

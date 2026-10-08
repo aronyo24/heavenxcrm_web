@@ -9,6 +9,7 @@ import { SummaryCards } from "@/components/admin/SummaryCards"
 import { FileText, DollarSign, Building2, MapPin } from "lucide-react"
 import { fetchSubmissionAnalytics, getExportReportUrl } from "@/lib/api"
 import type { SubmissionAnalytics } from "@/lib/types"
+import { PageHeader } from "@/components/crm/PageHeader"
 
 export default function SubmissionAnalyticsPage() {
   const [data, setData] = useState<SubmissionAnalytics | null>(null)
@@ -51,23 +52,26 @@ export default function SubmissionAnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Submission Analytics</h1>
-          <p className="text-sm text-muted-foreground">Form submission data and reports</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Input type="date" value={filters.start_date} onChange={(e) => setFilters({ ...filters, start_date: e.target.value })} className="w-36" />
-          <Input type="date" value={filters.end_date}   onChange={(e) => setFilters({ ...filters, end_date:   e.target.value })} className="w-36" />
-          <Input placeholder="Country" value={filters.country} onChange={(e) => setFilters({ ...filters, country: e.target.value })} className="w-32" />
-          <Button size="sm" onClick={() => void load()} disabled={loading}>Apply</Button>
-          <Button variant="outline" size="sm" asChild>
-            <a href={getExportReportUrl("submissions", "csv", Object.fromEntries(Object.entries(filters).filter(([, v]) => v)))} download>
-              <Download className="w-4 h-4 mr-1" /> CSV
-            </a>
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Analytics"
+        title="Reports"
+        description="Advisor form submissions - filter, review and export"
+        actions={
+          <>
+            <div className="flex flex-wrap gap-2">
+              <Input type="date" value={filters.start_date} onChange={(e) => setFilters({ ...filters, start_date: e.target.value })} className="w-36" />
+              <Input type="date" value={filters.end_date}   onChange={(e) => setFilters({ ...filters, end_date:   e.target.value })} className="w-36" />
+              <Input placeholder="Country" value={filters.country} onChange={(e) => setFilters({ ...filters, country: e.target.value })} className="w-32" />
+              <Button size="sm" onClick={() => void load()} disabled={loading}>Apply</Button>
+              <Button variant="outline" size="sm" asChild>
+                <a href={getExportReportUrl("submissions", "csv", Object.fromEntries(Object.entries(filters).filter(([, v]) => v)))} download>
+                  <Download className="w-4 h-4 mr-1" /> CSV
+                </a>
+              </Button>
+            </div>
+          </>
+        }
+      />
 
       <SummaryCards cards={[
         { label: "Total Submissions", value: summary?.total_submissions ?? 0, icon: FileText },

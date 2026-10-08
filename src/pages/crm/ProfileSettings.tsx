@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { changePassword, updateUserProfile, uploadProfileFiles } from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import { API_BASE_URL } from "@/lib/env"
+import { PageHeader } from "@/components/crm/PageHeader"
 
 // The API returns media as a site-relative path (/media/...), but this app is
 // served from a different origin than Django - resolve it against the API host.
@@ -110,10 +111,7 @@ export default function ProfileSettings() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-sm text-muted-foreground">Update your profile details and password.</p>
-      </div>
+      <PageHeader eyebrow="Account" title="Settings" description="Update your profile details and password." />
 
       <form onSubmit={handleProfileSave} className="rounded-2xl border bg-card p-6 space-y-5">
         <h2 className="text-lg font-semibold">Profile</h2>

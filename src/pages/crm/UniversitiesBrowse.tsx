@@ -13,6 +13,7 @@ import { DataTable } from "@/components/crm/DataTable"
 import { getCourseFilters, getCoursesPage } from "@/lib/api"
 import { formatTuition } from "@/lib/format"
 import type { Course } from "@/lib/types"
+import { PageHeader } from "@/components/crm/PageHeader"
 
 const columns: ColumnDef<Course, unknown>[] = [
   { accessorKey: "program_name", header: "Program" },
@@ -76,23 +77,24 @@ export default function UniversitiesBrowse() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Universities</h1>
-        <p className="text-sm text-muted-foreground">Reference catalog of every university and program in the database.</p>
-      </div>
+      <PageHeader
+        eyebrow="Reference"
+        title="Universities"
+        description="Search programmes to recommend while you counsel a student."
+      />
 
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col gap-2.5 rounded-xl border bg-card p-3 shadow-sm lg:flex-row lg:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            className="pl-9"
-            placeholder="Search programs, universities..."
+            className="h-9 border-slate-200 bg-slate-50 pl-9 shadow-none focus-visible:bg-background dark:border-white/10 dark:bg-white/5"
+            placeholder="Search programmes or universities…"
             value={search}
             onChange={(e) => { setPage(1); setSearch(e.target.value) }}
           />
         </div>
         <Select value={country} onValueChange={(v) => { setPage(1); setCountry(v) }}>
-          <SelectTrigger className="w-full sm:w-48">
+          <SelectTrigger className="h-9 w-full shadow-none sm:w-48">
             <SelectValue placeholder="All countries" />
           </SelectTrigger>
           <SelectContent>
@@ -101,7 +103,7 @@ export default function UniversitiesBrowse() {
           </SelectContent>
         </Select>
         <Select value={degree} onValueChange={(v) => { setPage(1); setDegree(v) }}>
-          <SelectTrigger className="w-full sm:w-48">
+          <SelectTrigger className="h-9 w-full shadow-none sm:w-48">
             <SelectValue placeholder="All degrees" />
           </SelectTrigger>
           <SelectContent>

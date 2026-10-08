@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { apiClient } from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import type { AuthUser } from "@/lib/types"
+import { PageHeader } from "@/components/crm/PageHeader"
 
 const ALL = "all"
 
@@ -125,22 +126,25 @@ export default function UsersList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Registered Users</h1>
-          <p className="text-sm text-muted-foreground">List of all users registered on the platform</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
-          </Button>
-          {canExport && (
-            <Button variant="outline" size="sm" onClick={() => downloadCsv(filtered)} disabled={loading || filtered.length === 0}>
-              <Download className="w-4 h-4 mr-2" /> Export CSV{hasActiveFilters ? ` (${filtered.length})` : ""}
-            </Button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="People"
+        title="Registered users"
+        description="Everyone who has signed up on the public site"
+        actions={
+          <>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
+                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
+              </Button>
+              {canExport && (
+                <Button variant="outline" size="sm" onClick={() => downloadCsv(filtered)} disabled={loading || filtered.length === 0}>
+                  <Download className="w-4 h-4 mr-2" /> Export CSV{hasActiveFilters ? ` (${filtered.length})` : ""}
+                </Button>
+              )}
+            </div>
+          </>
+        }
+      />
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="relative w-full sm:w-64">

@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DateTimePicker } from "@/components/crm/DateTimePicker"
-import { createTask } from "@/lib/crm-api"
+import { announceTasksChanged, createTask } from "@/lib/crm-api"
 import type { TaskType } from "@/lib/crm-types"
 
 const TASK_TYPES: { value: TaskType; label: string }[] = [
@@ -39,6 +39,21 @@ const taskSchema = z.object({
 })
 
 type TaskFormValues = z.infer<typeof taskSchema>
+
+// One-click due dates for the follow-ups counselors set all day long.
+const at = (daysAhead: number, hour: number) => {
+  const d = new Date()
+  d.setDate(d.getDate() + daysAhead)
+  d.setHours(hour, 0, 0, 0)
+  return d
+}
+const DUE_PRESETS: { label: string; value: () => Date }[] = [
+  { label: "In 1 hour", value: () => { const d = new Date(Date.now() + 3_600_000); d.setSeconds(0, 0); return d } },
+  { label: "This evening", value: () => at(0, 17) },
+  { label: "Tomorrow 10 AM", value: () => at(1, 10) },
+  { label: "In 3 days", value: () => at(3, 10) },
+  { label: "Next week", value: () => at(7, 10) },
+]
 
 export function TaskFormDialog({
   studentId,
@@ -67,6 +82,7 @@ export function TaskFormDialog({
         student: studentId ?? null,
       })
       toast.success("Task created")
+      announceTasksChanged()
       form.reset()
       setOpen(false)
       onCreated()
@@ -80,13 +96,13 @@ export function TaskFormDialog({
       <DialogTrigger asChild>
         {trigger ?? (
           <Button size="sm">
-            <Plus className="w-4 h-4 mr-2" /> New Task
+            <Plus className="w-4 h-4 mr-2" /> New task
           </Button>
         )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New Task</DialogTitle>
+          <DialogTitle>New task</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -162,6 +178,18 @@ export function TaskFormDialog({
                   <FormControl>
                     <DateTimePicker value={field.value} onChange={field.onChange} />
                   </FormControl>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {DUE_PRESETS.filter((p) => p.label !== "This evening" || new Date().getHours() < 16).map((p) => (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => field.onChange(p.value())}
+                        className="rounded-full border bg-muted/50 px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-700 dark:hover:text-emerald-400"
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
@@ -183,7 +211,7 @@ export function TaskFormDialog({
 
             <DialogFooter>
               <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Saving..." : "Create Task"}
+                {form.formState.isSubmitting ? "Saving…" : "Create task"}
               </Button>
             </DialogFooter>
           </form>

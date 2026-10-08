@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/crm/StatusBadge"
 import { fetchCommunications, fetchCrmAuditLog, syncInbox } from "@/lib/crm-api"
 import { replyPreview } from "@/lib/email-reply"
 import type { CommunicationLog, CrmAuditLogEntry } from "@/lib/crm-types"
+import { studentPath } from "@/lib/student-url"
 
 interface TimelineEntry {
   id: string
@@ -152,7 +153,7 @@ export function ActivityTimeline({ studentId, limit = 20 }: { studentId?: number
               {entry.studentName && entry.studentId && !studentId && (
                 <>
                   <span>&middot;</span>
-                  <Link to={`/crm/students/${entry.studentId}`} className="text-primary hover:underline">
+                  <Link to={studentPath(entry.studentId, entry.studentName)} className="text-primary hover:underline">
                     {entry.studentName}
                   </Link>
                 </>

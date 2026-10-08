@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { createSubAdmin, deleteSubAdmin, fetchSubAdmins, updateSubAdmin } from "@/lib/api"
 import type { AdminPermissions, SubAdmin } from "@/lib/types"
+import { PageHeader } from "@/components/crm/PageHeader"
 
 const PERMISSION_LABELS: Partial<Record<keyof AdminPermissions, string>> = {
   view_all_records: "View all records",
@@ -51,15 +52,18 @@ export default function SubAdminManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Sub-Admin Management</h1>
-          <p className="text-sm text-muted-foreground">Create and manage sub-admin accounts with role permissions</p>
-        </div>
-        <Button onClick={() => setShowForm(!showForm)}>
-          <Plus className="w-4 h-4 mr-2" /> Add Sub-Admin
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="People"
+        title="Sub-admins"
+        description="Create staff accounts and control what each one can access"
+        actions={
+          <>
+            <Button onClick={() => setShowForm(!showForm)}>
+              <Plus className="w-4 h-4 mr-2" /> Add Sub-Admin
+            </Button>
+          </>
+        }
+      />
 
       {showForm && (
         <div className="rounded-2xl border bg-card p-5 space-y-3">

@@ -12,6 +12,7 @@ import MeetingRoom from "@/pages/MeetingRoom";
 import CrmDashboard from "@/pages/crm/CrmDashboard";
 import PipelineKanban from "@/pages/crm/PipelineKanban";
 import StudentsList from "@/pages/crm/StudentsList";
+import LeadsInbox from "@/pages/crm/LeadsInbox";
 import StudentProfile from "@/pages/crm/StudentProfile";
 import ApplicationsList from "@/pages/crm/ApplicationsList";
 import CounselorManagement from "@/pages/crm/CounselorManagement";
@@ -53,8 +54,9 @@ export default function App() {
             <Route path="/crm" element={<RequireCrm><CrmLayout /></RequireCrm>}>
               <Route index element={<CrmDashboard />} />
               <Route path="pipeline" element={<PipelineKanban />} />
+              <Route path="leads" element={<RequireAdmin><LeadsInbox /></RequireAdmin>} />
               <Route path="students" element={<StudentsList />} />
-              <Route path="students/:id" element={<StudentProfile />} />
+              <Route path="students/:slug" element={<StudentProfile />} />
               <Route path="applications" element={<ApplicationsList />} />
               <Route path="communications" element={<CommunicationsList />} />
               <Route path="universities" element={<UniversitiesBrowse />} />

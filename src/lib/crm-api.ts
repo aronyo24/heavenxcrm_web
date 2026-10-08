@@ -85,6 +85,13 @@ export async function updateCounselor(id: number, payload: Partial<Counselor>): 
   return response.data
 }
 
+/** Admin-only. Unassigns the counselor's students (they return to the leads
+ * inbox), hands their open tasks to the caller and revokes their CRM login. */
+export async function deleteCounselor(id: number): Promise<{ released_students: number; reassigned_tasks: number }> {
+  const response = await apiClient.delete(`/crm/counselors/${id}/`)
+  return response.data
+}
+
 export async function fetchCounselorPerformance(id: number): Promise<CounselorPerformance> {
   const response = await apiClient.get(`/crm/counselors/${id}/performance/`)
   return response.data
@@ -99,6 +106,7 @@ export interface StudentFilters {
   counselor?: number | string
   lead_source?: number | string
   is_lost?: boolean
+  received?: "today" | "7d"
   search?: string
   ordering?: "newest" | "oldest" | "name" | "stage"
   page?: number
@@ -152,6 +160,33 @@ export async function changeStudentStage(
 export async function assignStudentCounselor(id: number | string, counselorId: number | null): Promise<Student> {
   const response = await apiClient.post(`/crm/students/${id}/assign_counselor/`, { counselor_id: counselorId })
   return response.data
+}
+
+// Leads inbox: students nobody owns yet (counselor=unassigned). Full admins
+// assign them out to counselors - which moves them into Students - or delete
+// the fake/spam ones. Bulk endpoints only ever touch unassigned students.
+export interface LeadSummary {
+  total: number
+  today: number
+  last_7_days: number
+  facebook: number
+}
+
+// Fired when leads arrive, get assigned, or get deleted, so the sidebar
+// counter and an open Leads page refresh straight away.
+export const LEADS_CHANGED_EVENT = "crm:leads-changed"
+export const announceLeadsChanged = () => window.dispatchEvent(new Event(LEADS_CHANGED_EVENT))
+
+export async function fetchLeadSummary(): Promise<LeadSummary> {
+  return (await apiClient.get("/crm/students/lead_summary/")).data
+}
+
+export async function bulkAssignLeads(ids: number[], counselorId: number): Promise<{ assigned: number; counselor_name: string }> {
+  return (await apiClient.post("/crm/students/bulk_assign/", { ids, counselor_id: counselorId })).data
+}
+
+export async function bulkDeleteLeads(ids: number[]): Promise<{ deleted: number }> {
+  return (await apiClient.post("/crm/students/bulk_delete/", { ids })).data
 }
 
 export async function fetchStudentRecommendations(id: number | string): Promise<StudentRecommendationsResponse> {
@@ -219,7 +254,12 @@ export interface TaskFilters {
   assigned_to?: number | "me"
   status?: string
   student?: number | string
+  limit?: number
 }
+
+// Fired after a task is created or completed so the sidebar counter refreshes.
+export const TASKS_CHANGED_EVENT = "crm:tasks-changed"
+export const announceTasksChanged = () => window.dispatchEvent(new Event(TASKS_CHANGED_EVENT))
 
 export async function fetchTasks(filters: TaskFilters = {}): Promise<CrmPaginatedResponse<Task>> {
   const response = await apiClient.get("/crm/tasks/", { params: filters })
