@@ -7,9 +7,10 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react"
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { buildPaginationItems } from "@/lib/pagination"
 import { cn } from "@/lib/utils"
@@ -18,7 +19,12 @@ interface DataTablePagination {
   page: number
   totalPages: number
   onPageChange: (page: number) => void
+  // Pass both to show a "Rows per page" picker in the footer.
+  pageSize?: number
+  onPageSizeChange?: (size: number) => void
 }
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
 interface DataTableProps<TData> {
   columns: ColumnDef<TData, unknown>[]
@@ -145,59 +151,101 @@ export function DataTable<TData>({
         </TableBody>
       </Table>
 
-      {totalCount !== undefined && !isLoading && totalCount > 0 && pagination && pagination.totalPages <= 1 ? (
-        <div className="border-t bg-slate-50 px-4 py-2.5 text-xs text-muted-foreground dark:bg-white/[0.03]">
-          Showing all <span className="font-medium text-foreground">{totalCount}</span> {itemLabel}
-        </div>
+      {pagination && (totalCount !== undefined ? totalCount > 0 : pagination.totalPages > 1) ? (
+        <DataTablePager
+          pagination={pagination}
+          totalCount={totalCount}
+          rowCount={data.length}
+          offset={pagination.pageSize ? (pagination.page - 1) * pagination.pageSize : rowNumberOffset}
+          itemLabel={itemLabel}
+        />
       ) : null}
+    </div>
+  )
+}
 
-      {pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between gap-2 border-t bg-slate-50 px-4 py-2.5 dark:bg-white/[0.03]">
-          {totalCount !== undefined && rowNumberOffset !== undefined ? (
-            <span className="hidden text-xs text-muted-foreground sm:block">
-              Showing <span className="font-medium text-foreground">{rowNumberOffset + 1}–{rowNumberOffset + data.length}</span> of{" "}
-              <span className="font-medium text-foreground">{totalCount}</span> {itemLabel}
-            </span>
-          ) : null}
-          <div className="ml-auto flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={pagination.page <= 1}
-            onClick={() => pagination.onPageChange(pagination.page - 1)}
-          >
-            <ChevronLeft className="w-4 h-4" />
+function DataTablePager({
+  pagination, totalCount, rowCount, offset, itemLabel,
+}: {
+  pagination: DataTablePagination
+  totalCount: number | undefined
+  rowCount: number
+  offset: number | undefined
+  itemLabel: string
+}) {
+  const { page, totalPages, onPageChange, pageSize, onPageSizeChange } = pagination
+  const pages = Math.max(1, totalPages)
+  const go = (next: number) => onPageChange(Math.min(pages, Math.max(1, next)))
+  const navButton = "h-8 w-8 p-0 shadow-none"
+
+  return (
+    <div className="flex flex-col gap-3 border-t bg-slate-50 px-4 py-2.5 text-xs text-muted-foreground dark:bg-white/[0.03] md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        {totalCount !== undefined ? <span>
+          {offset !== undefined && rowCount > 0 ? (
+            <>
+              Showing <span className="font-medium text-foreground tabular-nums">{offset + 1}–{offset + rowCount}</span> of{" "}
+            </>
+          ) : "Total "}
+          <span className="font-medium text-foreground tabular-nums">{totalCount}</span> {itemLabel}
+        </span> : null}
+        {pageSize && onPageSizeChange ? (
+          <span className="flex items-center gap-2">
+            Rows per page
+            <Select value={String(pageSize)} onValueChange={(v) => onPageSizeChange(Number(v))}>
+              <SelectTrigger className="h-8 w-[70px] bg-background text-xs shadow-none">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <SelectItem key={size} value={String(size)}>{size}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </span>
+        ) : null}
+      </div>
+
+      <div className="flex items-center gap-3">
+        <span className="hidden whitespace-nowrap sm:inline">
+          Page <span className="font-medium text-foreground tabular-nums">{page}</span> of{" "}
+          <span className="font-medium text-foreground tabular-nums">{pages}</span>
+        </span>
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="sm" className={navButton} title="First page" disabled={page <= 1} onClick={() => go(1)}>
+            <ChevronsLeft className="h-4 w-4" />
           </Button>
-          <div className="flex items-center gap-1">
-            {buildPaginationItems(pagination.page, pagination.totalPages).map((item, i) =>
-              item === "ellipsis" ? (
-                <span key={`e-${i}`} className="px-2 text-sm text-muted-foreground">
-                  …
-                </span>
-              ) : (
-                <button
-                  key={item}
-                  onClick={() => pagination.onPageChange(item)}
-                  className={`h-8 w-8 rounded-md text-sm transition-colors ${
-                    item === pagination.page ? "bg-primary text-primary-foreground" : "hover:bg-accent"
-                  }`}
-                >
-                  {item}
-                </button>
-              )
-            )}
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={pagination.page >= pagination.totalPages}
-            onClick={() => pagination.onPageChange(pagination.page + 1)}
-          >
-            <ChevronRight className="w-4 h-4" />
+          <Button variant="outline" size="sm" className={navButton} title="Previous page" disabled={page <= 1} onClick={() => go(page - 1)}>
+            <ChevronLeft className="h-4 w-4" />
           </Button>
-          </div>
+          {buildPaginationItems(page, pages).map((item, i) =>
+            item === "ellipsis" ? (
+              <span key={`e-${i}`} className="w-6 text-center">…</span>
+            ) : (
+              <button
+                key={item}
+                type="button"
+                aria-current={item === page ? "page" : undefined}
+                onClick={() => go(item)}
+                className={cn(
+                  "h-8 min-w-8 rounded-md border px-2 text-xs font-medium tabular-nums transition-colors",
+                  item === page
+                    ? "border-emerald-600 bg-emerald-600 text-white"
+                    : "border-transparent text-foreground hover:border-border hover:bg-background",
+                )}
+              >
+                {item}
+              </button>
+            ),
+          )}
+          <Button variant="outline" size="sm" className={navButton} title="Next page" disabled={page >= pages} onClick={() => go(page + 1)}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm" className={navButton} title="Last page" disabled={page >= pages} onClick={() => go(pages)}>
+            <ChevronsRight className="h-4 w-4" />
+          </Button>
         </div>
-      )}
+      </div>
     </div>
   )
 }

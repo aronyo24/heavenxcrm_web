@@ -46,7 +46,7 @@ export function QuickChatDialog({ studentId, studentName }: { studentId: number;
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon" title={`Message ${studentName}`}>
+        <Button variant="outline" size="icon" className="h-8 w-8" title={`Message ${studentName}`}>
           <MessageCircle className="w-4 h-4" />
         </Button>
       </DialogTrigger>

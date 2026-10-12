@@ -10,6 +10,7 @@ import type {
   Application,
   ApplicationListItem,
   ApplicationStatus,
+  ApplicationSummary,
   CallRequest,
   CallType,
   CommunicationChannel,
@@ -210,6 +211,14 @@ export interface ApplicationFilters {
   search?: string
   page?: number
   limit?: number
+  ordering?: "newest" | "oldest" | "updated"
+}
+
+export async function fetchApplicationSummary(
+  filters: Omit<ApplicationFilters, "page" | "limit" | "ordering" | "status"> = {}
+): Promise<ApplicationSummary> {
+  const response = await apiClient.get("/crm/applications/summary/", { params: filters })
+  return response.data
 }
 
 export async function fetchApplications(
@@ -237,11 +246,14 @@ export async function updateApplication(id: number | string, payload: { review_n
 export async function changeApplicationStatus(
   id: number | string,
   status: ApplicationStatus,
-  reviewNotes?: string
+  reviewNotes?: string,
+  // Shown to the student with the status notification (review notes stay internal).
+  studentMessage?: string
 ): Promise<Application> {
   const response = await apiClient.post(`/crm/applications/${id}/change_status/`, {
     status,
     review_notes: reviewNotes,
+    student_message: studentMessage || undefined,
   })
   return response.data
 }
@@ -348,6 +360,21 @@ export async function sendStudentEmail(
   payload: { subject: string; message: string }
 ): Promise<CommunicationLog> {
   const response = await apiClient.post(`/crm/students/${studentId}/send_email/`, payload)
+  return response.data
+}
+
+export interface BulkEmailResult {
+  sent: number
+  failed: { id: number; name: string; error: string }[]
+  no_email: { id: number; name: string }[]
+}
+
+// One separate email per student; "{first_name}" / "{name}" are personalised server-side.
+export async function bulkEmailStudents(
+  ids: number[],
+  payload: { subject: string; message: string }
+): Promise<BulkEmailResult> {
+  const response = await apiClient.post("/crm/students/bulk_email/", { ids, ...payload })
   return response.data
 }
 

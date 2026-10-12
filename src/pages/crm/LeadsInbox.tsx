@@ -21,7 +21,6 @@ import type { Counselor, LeadSource, PipelineStage, StudentListItem } from "@/li
 import { cn } from "@/lib/utils"
 import { studentPath } from "@/lib/student-url"
 
-const PAGE_SIZE = 25
 // The list refreshes itself while the tab is visible. New Facebook leads are
 // pulled in by CrmLayout, which fires LEADS_CHANGED_EVENT when any arrive.
 const REFRESH_MS = 15_000
@@ -43,13 +42,20 @@ function timeAgo(iso: string, now: number): string {
 const ageHours = (iso: string, now: number) => (now - new Date(iso).getTime()) / 3_600_000
 
 // Freshness dot: a lead goes cold fast, so make the old ones stand out.
+// The cell shows the actual received date/time; "3d ago" is in the tooltip.
 function ReceivedCell({ iso, now }: { iso: string; now: number }) {
   const hours = ageHours(iso, now)
   const tone = hours < 1 ? "bg-emerald-500" : hours < 24 ? "bg-sky-500" : hours < 72 ? "bg-amber-500" : "bg-red-500"
+  const date = new Date(iso)
   return (
-    <span className="flex items-center gap-2 whitespace-nowrap text-xs text-slate-600 dark:text-slate-300" title={new Date(iso).toLocaleString()}>
+    <span className="flex items-center gap-2 whitespace-nowrap text-xs tabular-nums text-slate-600 dark:text-slate-300" title={timeAgo(iso, now)}>
       <span className={cn("h-2 w-2 flex-shrink-0 rounded-full", tone)} />
-      {timeAgo(iso, now)}
+      <span>
+        {date.toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" })}
+        <span className="ml-1.5 text-muted-foreground">
+          {date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+        </span>
+      </span>
     </span>
   )
 }
@@ -183,6 +189,7 @@ export default function LeadsInbox() {
   const [lastUpdated, setLastUpdated] = useState<number | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(25)
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState<number>()
   const [view, setView] = useState<LeadView>("all")
@@ -220,7 +227,7 @@ export default function LeadsInbox() {
       const [res, summaryRes] = await Promise.all([
         fetchStudents({
           page,
-          limit: PAGE_SIZE,
+          limit: pageSize,
           counselor: "unassigned",
           search: search || undefined,
           lead_source: source,
@@ -255,7 +262,7 @@ export default function LeadsInbox() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [page, search, sourceFilter, view, facebookSourceId, ordering, canManage])
+  }, [page, pageSize, search, sourceFilter, view, facebookSourceId, ordering, canManage])
 
   useEffect(() => { void loadLookups() }, [loadLookups])
   useEffect(() => { void loadLeads() }, [loadLeads])
@@ -545,9 +552,12 @@ export default function LeadsInbox() {
         itemLabel={totalCount === 1 ? "lead" : "leads"}
         emptyMessage={hasFilters || view !== "all" ? "No leads match this view." : "Inbox zero — every lead has a counselor."}
         onRowClick={(lead) => navigate(studentPath(lead.id, lead.full_name))}
-        rowNumberOffset={(page - 1) * PAGE_SIZE}
+        rowNumberOffset={(page - 1) * pageSize}
         isRowHighlighted={(lead) => selected.has(lead.id)}
-        pagination={{ page, totalPages, onPageChange: setPage }}
+        pagination={{
+          page, totalPages, onPageChange: setPage,
+          pageSize, onPageSizeChange: (size) => { setPage(1); setPageSize(size) },
+        }}
       />
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">

@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import {
   Activity, Award, BadgeCheck, BookOpen, CalendarDays, Check, CheckCircle2, ChevronRight, Circle, Clock, Copy,
   ExternalLink, FileText, Flag, GraduationCap, Hourglass, ListChecks, Mail, MessageCircle, MessagesSquare,
-  Pencil, Phone, Sparkles, Tag, Target, Video, Wallet, XCircle,
+  Minus, NotebookPen, Pencil, Phone, Plus, Sparkles, Tag, Target, Video, Wallet, XCircle,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -244,14 +244,113 @@ function Card({
   )
 }
 
-function Info({ label, value }: { label: string; value?: string | null }) {
+interface DetailField {
+  label: string
+  value?: string | null
+  wide?: boolean
+}
+
+// One collapsible row of the profile "details" accordion: closed it shows a
+// one-line summary and how much is filled in; "+" opens the full details.
+function DetailSection({
+  icon: Icon, title, accent, summary, filled, total, open, onToggle, onEdit, children,
+}: {
+  icon: React.ElementType
+  title: string
+  accent: string
+  summary: React.ReactNode
+  filled?: number
+  total?: number
+  open: boolean
+  onToggle: () => void
+  onEdit: () => void
+  children: React.ReactNode
+}) {
+  const complete = total !== undefined && filled === total
   return (
-    <div className="min-w-0">
-      <dt className="text-[11px] font-medium uppercase tracking-wider text-slate-500">{label}</dt>
-      <dd className={cn("mt-0.5 truncate text-sm font-medium", !value && "font-normal text-slate-400")}>{value || "Not added"}</dd>
+    <div className={cn("transition-colors", open && "bg-slate-50/60 dark:bg-white/[0.02]")}>
+      <div className="flex items-center gap-3 px-5 py-3.5">
+        <button type="button" onClick={onToggle} aria-expanded={open} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+          <span className={cn("flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl", accent)}>
+            <Icon className="h-4 w-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-2">
+              <span className="text-sm font-semibold">{title}</span>
+              {total !== undefined ? (
+                <span className={cn(
+                  "rounded-full px-1.5 py-px text-[10px] font-semibold tabular-nums",
+                  complete
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
+                    : "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300",
+                )}>
+                  {filled}/{total} added
+                </span>
+              ) : null}
+            </span>
+            <span className="mt-0.5 block truncate text-xs text-muted-foreground">{summary}</span>
+          </span>
+        </button>
+        {open ? (
+          <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={onEdit}>
+            <Pencil className="h-3 w-3" /> Edit
+          </Button>
+        ) : null}
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={open ? `Hide ${title}` : `Show ${title}`}
+          className={cn(
+            "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border transition-colors",
+            open
+              ? "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700"
+              : "bg-background text-slate-600 hover:border-emerald-500 hover:text-emerald-600 dark:text-slate-300",
+          )}
+        >
+          {open ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+        </button>
+      </div>
+      {open ? <div className="px-5 pb-5 pl-[68px]">{children}</div> : null}
     </div>
   )
 }
+
+function DetailFields({ fields, onAdd }: { fields: DetailField[]; onAdd: () => void }) {
+  const filled = fields.filter((f) => f.value)
+  const missing = fields.filter((f) => !f.value)
+  return (
+    <div className="space-y-4">
+      {filled.length ? (
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl border bg-card p-4">
+          {filled.map((f) => (
+            <div key={f.label} className={cn("min-w-0", f.wide && "col-span-2")}>
+              <dt className="text-[11px] font-medium uppercase tracking-wider text-slate-500">{f.label}</dt>
+              <dd className="mt-0.5 truncate text-sm font-medium" title={f.value ?? undefined}>{f.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      {missing.length ? (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-xs text-muted-foreground">{filled.length ? "Missing:" : "Add:"}</span>
+          {missing.map((f) => (
+            <button
+              key={f.label}
+              type="button"
+              onClick={onAdd}
+              className="inline-flex items-center gap-1 rounded-full border border-dashed border-slate-300 px-2.5 py-0.5 text-xs text-slate-600 transition-colors hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700 dark:border-white/15 dark:text-slate-300 dark:hover:bg-emerald-500/10"
+            >
+              <Plus className="h-3 w-3" /> {f.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+const summarize = (fields: DetailField[], empty: string) =>
+  fields.filter((f) => f.value).map((f) => f.value).join(" · ") || empty
 
 export default function StudentProfile() {
   const { slug } = useParams<{ slug: string }>()
@@ -277,6 +376,14 @@ export default function StudentProfile() {
   const [applicationUpdating, setApplicationUpdating] = useState<number | null>(null)
   const [openApplicationId, setOpenApplicationId] = useState<number | null>(null)
   const [editing, setEditing] = useState(false)
+  // Collapsed by default; "+" on a section opens its details.
+  const [openDetails, setOpenDetails] = useState<Set<string>>(new Set())
+  const toggleDetail = (key: string) => setOpenDetails((prev) => {
+    const next = new Set(prev)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
+    return next
+  })
   // "Overdue" is judged against when the page was opened.
   const [now] = useState(() => Date.now())
 
@@ -454,6 +561,20 @@ export default function StudentProfile() {
   const budget = student.budget_min || student.budget_max
     ? `${student.budget_min ?? "?"} – ${student.budget_max ?? "?"} ${student.budget_currency}`
     : undefined
+  const academicFields: DetailField[] = [
+    { label: "Qualification", value: student.highest_qualification },
+    { label: "GPA", value: student.gpa != null ? String(student.gpa) : undefined },
+    { label: "Institute", value: student.previous_institute, wide: true },
+    { label: "Field of study", value: student.field_of_study, wide: true },
+    { label: "English test", value: student.english_test },
+    { label: "Score", value: student.english_score != null ? String(student.english_score) : undefined },
+  ]
+  const planFields: DetailField[] = [
+    { label: "Country", value: student.target_country },
+    { label: "Degree", value: student.target_degree },
+    { label: "Specialization", value: student.target_specialization, wide: true },
+    { label: "Budget", value: budget, wide: true },
+  ]
 
   return (
     <div className="space-y-5">
@@ -637,43 +758,57 @@ export default function StudentProfile() {
 
               <LeadFormCard leadForm={student.lead_form} />
 
-              <div className="grid gap-5 md:grid-cols-2">
-                <Card
-                  icon={GraduationCap} title="Academic background"
-                  action={<Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => setEditing(true)}><Pencil className="h-3 w-3" /> Edit</Button>}
-                >
-                  <dl className="grid grid-cols-2 gap-4">
-                    <Info label="Qualification" value={student.highest_qualification} />
-                    <Info label="GPA" value={student.gpa != null ? String(student.gpa) : undefined} />
-                    <div className="col-span-2"><Info label="Institute" value={student.previous_institute} /></div>
-                    <div className="col-span-2"><Info label="Field of study" value={student.field_of_study} /></div>
-                    <Info label="English test" value={student.english_test} />
-                    <Info label="Score" value={student.english_score != null ? String(student.english_score) : undefined} />
-                  </dl>
-                </Card>
-                <Card
-                  icon={Wallet} title="Study plan"
-                  action={<Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => setEditing(true)}><Pencil className="h-3 w-3" /> Edit</Button>}
-                >
-                  <dl className="grid grid-cols-2 gap-4">
-                    <Info label="Country" value={student.target_country} />
-                    <Info label="Degree" value={student.target_degree} />
-                    <div className="col-span-2"><Info label="Specialization" value={student.target_specialization} /></div>
-                    <div className="col-span-2"><Info label="Budget" value={budget} /></div>
-                  </dl>
-                </Card>
+              <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+                <div className="flex items-center justify-between border-b px-5 py-3">
+                  <h3 className="text-sm font-semibold">Student details</h3>
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+                    onClick={() => setOpenDetails(openDetails.size === 3 ? new Set() : new Set(["academic", "plan", "notes"]))}
+                  >
+                    {openDetails.size === 3 ? "Collapse all" : "Expand all"}
+                  </button>
+                </div>
+                <div className="divide-y">
+                  <DetailSection
+                    icon={GraduationCap} title="Academic background"
+                    accent="bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300"
+                    summary={summarize(academicFields, "No academic details yet")}
+                    filled={academicFields.filter((f) => f.value).length} total={academicFields.length}
+                    open={openDetails.has("academic")} onToggle={() => toggleDetail("academic")} onEdit={() => setEditing(true)}
+                  >
+                    <DetailFields fields={academicFields} onAdd={() => setEditing(true)} />
+                  </DetailSection>
+                  <DetailSection
+                    icon={Wallet} title="Study plan"
+                    accent="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+                    summary={summarize(planFields, "No study plan yet")}
+                    filled={planFields.filter((f) => f.value).length} total={planFields.length}
+                    open={openDetails.has("plan")} onToggle={() => toggleDetail("plan")} onEdit={() => setEditing(true)}
+                  >
+                    <DetailFields fields={planFields} onAdd={() => setEditing(true)} />
+                  </DetailSection>
+                  <DetailSection
+                    icon={NotebookPen} title="Counselor notes"
+                    accent="bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
+                    summary={student.notes ? student.notes.split("\n")[0] : "No notes yet"}
+                    open={openDetails.has("notes")} onToggle={() => toggleDetail("notes")} onEdit={() => setEditing(true)}
+                  >
+                    {student.notes ? (
+                      <p className="whitespace-pre-wrap rounded-xl border bg-card p-4 text-sm leading-relaxed">{student.notes}</p>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setEditing(true)}
+                        className="flex w-full items-center gap-2 rounded-xl border border-dashed p-4 text-left text-sm text-muted-foreground transition-colors hover:border-emerald-500 hover:text-emerald-700"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add a note so anyone picking up {firstName}'s file knows the story.
+                      </button>
+                    )}
+                  </DetailSection>
+                </div>
               </div>
-
-              <Card
-                icon={Pencil} title="Counselor notes"
-                action={<Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => setEditing(true)}><Pencil className="h-3 w-3" /> Edit</Button>}
-              >
-                {student.notes ? (
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{student.notes}</p>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No notes yet. Add context so anyone picking up {firstName}'s file knows the story.</p>
-                )}
-              </Card>
             </TabsContent>
 
             <TabsContent value="chat" className="mt-0">

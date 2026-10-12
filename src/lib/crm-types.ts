@@ -118,19 +118,24 @@ export interface ApplicationListItem {
   student: number
   student_name: string
   student_email: string
+  student_phone: string
   course: number
   course_name: string
+  course_degree: string
   university_name: string
+  university_logo: string | null
+  university_country: string
   status: ApplicationStatus
   intake_term: string
   counselor_name: string | null
+  has_resume: boolean
   submitted_at: string
   updated_at: string
   decided_at: string | null
 }
 
-export interface Application extends Omit<ApplicationListItem, "student_name" | "student_email" | "counselor_name"> {
-  university_logo: string | null
+export interface Application extends Omit<ApplicationListItem, "student_name" | "student_email" | "student_phone" | "has_resume"> {
+  course_url: string | null
   full_name: string
   email: string
   phone: string
@@ -148,6 +153,12 @@ export interface Application extends Omit<ApplicationListItem, "student_name" | 
   reviewed_by: number | null
   reviewed_by_name: string | null
   review_notes: string
+}
+
+export interface ApplicationSummary {
+  total: number
+  by_status: Record<ApplicationStatus, number>
+  this_week: number
 }
 
 export interface StudentRecommendation {
