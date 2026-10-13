@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react"
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowUpRight, LogOut, Menu, Search, ShieldCheck, X } from "lucide-react"
+import { ArrowUpRight, LogOut, Menu, Search, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { BrandLogo, BrandMark } from "@/components/brand-logo"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { CommandPalette } from "@/components/crm/CommandPalette"
 import { Toaster } from "@/components/ui/sonner"
@@ -25,14 +26,14 @@ const SidebarContent = ({
   user, roleLabel, visibleItems, pathname, onNavigate, onLogout, onSearch,
 }: SidebarContentProps) => (
   <div className="flex h-full flex-col">
-    <div className="flex items-center gap-3 px-5 py-5">
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-300 to-amber-500 shadow-lg shadow-amber-900/30">
-        <ShieldCheck className="h-5 w-5 text-[#13204a]" />
-      </div>
-      <div className="min-w-0">
-        <p className="text-sm font-bold leading-tight text-white">HeavenxCRM</p>
-        <p className="text-[11px] leading-tight text-white/45">Admin console</p>
-      </div>
+    <div className="px-5 pb-4 pt-5">
+      <Link to="/admin" onClick={onNavigate} className="block">
+        <BrandLogo tone="light" className="h-9" />
+      </Link>
+      <p className="mt-2 flex items-center gap-1.5 pl-1 text-[10px] font-semibold uppercase tracking-widest text-white/40">
+        <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+        Admin console
+      </p>
     </div>
 
     <div className="px-3">
@@ -201,6 +202,7 @@ export function AdminLayout() {
             <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)} className="h-8 w-8 lg:hidden">
               <Menu className="h-4 w-4" />
             </Button>
+            <BrandMark className="h-7 w-7 lg:hidden" />
             <div className="flex min-w-0 items-center gap-2 text-sm">
               <span className="hidden text-muted-foreground sm:inline">Admin</span>
               <span className="hidden text-muted-foreground/50 sm:inline">/</span>

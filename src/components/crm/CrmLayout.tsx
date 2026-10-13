@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react"
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { Bell, GraduationCap, LogOut, Menu, Search, Settings, ShieldCheck, X } from "lucide-react"
+import { Bell, LogOut, Menu, Search, Settings, ShieldCheck, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { BrandLogo, BrandMark } from "@/components/brand-logo"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { CommandPalette } from "@/components/crm/CommandPalette"
 import { useAuth } from "@/lib/auth"
@@ -33,14 +34,14 @@ const SidebarContent = ({
   user, roleLabel, visibleItems, pathname, onNavigate, onLogout, onSearch, badges, overdue,
 }: SidebarContentProps) => (
   <div className="flex h-full flex-col">
-    <div className="flex items-center gap-3 px-5 py-5">
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 shadow-lg shadow-emerald-900/40">
-        <GraduationCap className="h-5 w-5 text-white" />
-      </div>
-      <div className="min-w-0">
-        <p className="text-sm font-bold leading-tight text-white">HeavenxCRM</p>
-        <p className="text-[11px] leading-tight text-white/45">Counselor workspace</p>
-      </div>
+    <div className="px-5 pb-4 pt-5">
+      <Link to="/crm" onClick={onNavigate} className="block">
+        <BrandLogo tone="light" className="h-9" />
+      </Link>
+      <p className="mt-2 flex items-center gap-1.5 pl-1 text-[10px] font-semibold uppercase tracking-widest text-white/40">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+        CRM workspace
+      </p>
     </div>
 
     <div className="px-3">
@@ -280,6 +281,7 @@ export function CrmLayout() {
             <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)} className="h-8 w-8 lg:hidden">
               <Menu className="h-4 w-4" />
             </Button>
+            <BrandMark className="h-7 w-7 lg:hidden" />
             <div className="flex min-w-0 items-center gap-2 text-sm">
               <span className="hidden text-muted-foreground sm:inline">CRM</span>
               <span className="hidden text-muted-foreground/50 sm:inline">/</span>

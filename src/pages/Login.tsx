@@ -5,6 +5,7 @@ import { ArrowRight, Loader2, Lock, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/lib/auth"
+import { BrandLogo } from "@/components/brand-logo"
 
 type Portal = "crm" | "admin"
 
@@ -62,8 +63,14 @@ export default function LoginPage({ portal = "crm" }: { portal?: Portal }) {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-muted/30 px-4 py-12">
+      {/* Soft brand-colour glow behind the card (logo blue / purple). */}
+      <div aria-hidden className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-sky-400/15 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-violet-500/15 blur-3xl" />
+      <div className="relative w-full max-w-md">
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex justify-center">
+          <BrandLogo className="h-14 sm:h-16" />
+        </motion.div>
         <motion.form
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -112,6 +119,9 @@ export default function LoginPage({ portal = "crm" }: { portal?: Portal }) {
             </Link>
           </div>
         </motion.form>
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          © {new Date().getFullYear()} Technoheaven · HeavenXCRM
+        </p>
       </div>
     </div>
   )

@@ -94,12 +94,18 @@ function extractErrorMessage(error: AxiosError): string {
         if (typeof data?.detail === 'string' && data.detail.trim()) {
             return data.detail;
         }
-        if (data?.errors && typeof data.errors === 'object') {
-            return Object.entries(data.errors)
-                .flatMap(([, value]) => Array.isArray(value) ? value : [value])
-                .map((value) => String(value))
-                .filter(Boolean)
+        if (typeof data?.error === 'string' && data.error.trim()) {
+            return data.error;
+        }
+        // { errors: {field: [...]} } from our own views, or DRF's plain
+        // { field: [...] } validation errors from serializers.
+        const fieldErrors = data?.errors && typeof data.errors === 'object' ? data.errors : data;
+        if (fieldErrors && typeof fieldErrors === 'object' && !Array.isArray(fieldErrors)) {
+            const text = Object.values(fieldErrors)
+                .flatMap((value) => Array.isArray(value) ? value : [value])
+                .filter((value) => typeof value === 'string' && value.trim())
                 .join(' ');
+            if (text) return text;
         }
         return `Server error: ${error.response.status}`;
     }
@@ -158,8 +164,7 @@ apiClient.interceptors.response.use(
         // Throw error with user-friendly message
         if (error.response) {
             const status = error.response.status;
-            const data = error.response.data as any;
-            const errorMsg = extractErrorMessage(error) || data?.error || `Server error: ${status}`;
+            const errorMsg = extractErrorMessage(error);
 
             if (status === 401 || status === 403) {
                 throw new Error('Your session is not authorized for this action. Please log in again and retry.');

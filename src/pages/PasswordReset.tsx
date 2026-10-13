@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { ArrowRight, Loader2, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { BrandLogo } from "@/components/brand-logo"
 import { requestPasswordReset } from "@/lib/api"
 
 export default function PasswordResetPage() {
@@ -29,7 +30,10 @@ export default function PasswordResetPage() {
   }
 
   return (
-    <div className="min-h-screen pt-28 px-4 pb-20">
+    <div className="min-h-screen bg-muted/30 px-4 pb-20 pt-16">
+      <div className="mb-8 flex justify-center">
+        <Link to="/login"><BrandLogo className="h-12 sm:h-14" /></Link>
+      </div>
       <motion.form initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleSubmit} className="mx-auto max-w-xl rounded-3xl border bg-card/95 p-6 shadow-xl sm:p-8">
         <h1 className="text-3xl font-bold text-foreground">Reset your password</h1>
         <p className="mt-2 text-muted-foreground">We’ll send a reset link to the email attached to your account.</p>

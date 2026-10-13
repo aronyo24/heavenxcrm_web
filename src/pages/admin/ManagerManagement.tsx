@@ -12,8 +12,8 @@ import { PageHeader } from "@/components/crm/PageHeader"
 // CRM (leads, counselors, assignment) but never the /admin panel, so there
 // are no per-account permission toggles here.
 function errorMessage(err: unknown, fallback: string) {
-  const data = (err as { response?: { data?: { error?: string } } })?.response?.data
-  return data?.error || fallback
+  // apiClient's interceptor already turns the server's message into err.message.
+  return err instanceof Error && err.message ? err.message : fallback
 }
 
 export default function ManagerManagement() {
