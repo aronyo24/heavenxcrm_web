@@ -2,10 +2,10 @@
 /* eslint-disable no-useless-catch */
 /**
  * ============================================================================
- * UniAdmissionHelp - API Configuration
+ * HeavenxCRM - API Configuration
  * ============================================================================
  * 
- * This file contains all API calls for the UniAdmissionHelp application.
+ * This file contains all API calls for the HeavenxCRM application.
  * It uses Axios for HTTP requests and provides a clean interface for
  * interacting with the backend API.
  * 

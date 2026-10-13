@@ -50,11 +50,11 @@ export function QuickAddStudentDialog({
   onCreated: () => void
 }) {
   const { user } = useAuth()
-  // Only a full admin may put a student onto a counselor's caseload (see
+  // Only an admin or manager may put a student onto a counselor's caseload (see
   // StudentViewSet.assign_counselor) - the Student.counselor field itself is
-  // read-only on create/update now, so a non-admin's selection here would
+  // read-only on create/update now, so a counselor's selection here would
   // otherwise be silently dropped by the server.
-  const isFullAdmin = user?.role === "admin"
+  const isManager = !!user?.is_crm_manager
   const [open, setOpen] = useState(false)
   const defaultStage = stages.find((s) => s.key === "new") ?? stages[0]
 
@@ -105,7 +105,7 @@ export function QuickAddStudentDialog({
         target_specialization: values.target_specialization,
         notes: values.notes,
       })
-      if (isFullAdmin && values.counselor) {
+      if (isManager && values.counselor) {
         await assignStudentCounselor(created.id, Number(values.counselor))
       }
       toast.success("Lead added")
@@ -203,7 +203,7 @@ export function QuickAddStudentDialog({
             </div>
 
             <div className="grid sm:grid-cols-2 gap-4">
-              {isFullAdmin && (
+              {isManager && (
                 <FormField
                   control={form.control}
                   name="counselor"

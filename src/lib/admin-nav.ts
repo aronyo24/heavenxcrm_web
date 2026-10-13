@@ -20,7 +20,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { to: "/admin/submissions", label: "Reports", icon: FileText, section: "Analytics", permissionKey: "view_all_records", description: "Advisor form submissions and exports" },
   { to: "/admin/chatbot", label: "Chatbot", icon: Bot, section: "Analytics", permissionKey: "view_all_records", description: "AI advisor conversations and topics" },
   { to: "/admin/users", label: "Users", icon: Users, section: "People", permissionKey: "view_all_records", description: "Registered accounts on the public site" },
-  { to: "/admin/sub-admins", label: "Sub-admins", icon: Shield, section: "People", adminOnly: true, description: "Staff access and permissions" },
+  { to: "/admin/managers", label: "Managers", icon: Shield, section: "People", adminOnly: true, description: "Managers with full CRM access" },
   { to: "/admin/integrations/facebook", label: "Facebook leads", icon: Facebook, section: "Integrations", adminOnly: true, description: "Lead Ads connection and sync" },
 ]
 

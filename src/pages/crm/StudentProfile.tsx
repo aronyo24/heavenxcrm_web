@@ -95,7 +95,7 @@ function quickRepliesFor(student: Student, counselorName: string): QuickReply[] 
   const me = counselorName.split(" ")[0] || "your counselor"
   const country = student.target_country || "your chosen country"
   return [
-    { label: "👋 Greeting", text: `Hi ${first}, this is ${me} from UniAdmissionHelp. Thanks for reaching out! I'll be guiding you through your study abroad journey. When is a good time for a quick call?` },
+    { label: "👋 Greeting", text: `Hi ${first}, this is ${me} from HeavenxCRM. Thanks for reaching out! I'll be guiding you through your study abroad journey. When is a good time for a quick call?` },
     { label: "📄 Documents", text: `Hi ${first}, to move forward please share your academic transcripts, passport copy and English test result (if you have one). You can attach them right here in the chat.` },
     { label: "📅 Book a call", text: `Hi ${first}, let's schedule a short call to discuss your options in ${country}. Which day and time works best for you this week?` },
     { label: "🎓 Shortlist ready", text: `Great news ${first}! I've prepared a shortlist of universities in ${country} that match your profile. Shall we go through it together?` },
@@ -359,9 +359,9 @@ export default function StudentProfile() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAuth()
   // Reassigning a student's counselor is the boundary that puts them inside
-  // or outside a counselor's own scoped view, so only a full admin may do
-  // it (enforced server-side in StudentViewSet.assign_counselor too).
-  const isFullAdmin = user?.role === "admin"
+  // or outside a counselor's own scoped view, so only an admin or manager may
+  // do it (enforced server-side in StudentViewSet.assign_counselor too).
+  const isManager = !!user?.is_crm_manager
   const [student, setStudent] = useState<Student | null>(null)
   const [stages, setStages] = useState<PipelineStage[]>([])
   const [counselors, setCounselors] = useState<Counselor[]>([])
@@ -654,7 +654,7 @@ export default function StudentProfile() {
             </div>
             <div className="flex items-center gap-2.5">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Counselor</span>
-              {isFullAdmin ? (
+              {isManager ? (
                 <Select value={student.counselor ? String(student.counselor) : "none"} onValueChange={(v) => void handleCounselorChange(v)}>
                   <SelectTrigger className="h-8 w-48">
                     <SelectValue placeholder="Assign counselor" />

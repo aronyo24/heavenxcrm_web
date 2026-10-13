@@ -128,7 +128,7 @@ export default function PipelineKanban() {
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {user?.is_admin && counselors.length > 0 && (
+          {user?.is_crm_manager && counselors.length > 0 && (
             <Select value={counselorFilter} onValueChange={setCounselorFilter}>
               <SelectTrigger className="h-9 w-48 shadow-none">
                 <SelectValue placeholder="All counselors" />

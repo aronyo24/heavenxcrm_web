@@ -1,6 +1,6 @@
 /**
  * Meetings API + types (link-based counselor <-> student video/audio rooms).
- * Same file lives in both frontends (uniadmission_crm and uniadmission) since
+ * Same file lives in both frontends (heavenxcrm_web and heavenxcrm) since
  * both sides of a meeting talk to the same /crm/meetings/<token>/ endpoints.
  */
 

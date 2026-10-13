@@ -119,7 +119,7 @@ export default function UsersList() {
       <div className="text-center text-muted-foreground py-24 border border-dashed rounded-2xl flex flex-col items-center gap-3">
         <ShieldOff className="w-8 h-8" />
         <p className="font-medium text-foreground">Access restricted</p>
-        <p className="text-sm max-w-sm">Only admins and sub-admins with the "View all records" permission can see the user list.</p>
+        <p className="text-sm max-w-sm">Only admins can see the user list.</p>
       </div>
     )
   }
@@ -163,7 +163,7 @@ export default function UsersList() {
             <SelectContent>
               <SelectItem value={ALL}>All roles</SelectItem>
               <SelectItem value="user">User</SelectItem>
-              <SelectItem value="sub_admin">Sub-Admin</SelectItem>
+              <SelectItem value="sub_admin">Manager</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
             </SelectContent>
           </Select>
@@ -241,7 +241,7 @@ export default function UsersList() {
                         )}
                         {u.role === "sub_admin" && (
                           <Badge variant="secondary" className="bg-indigo-500/15 text-indigo-500 border-indigo-500/20 text-[10px] hover:bg-indigo-500/15">
-                            <UserCheck className="w-3 h-3 mr-1" /> Sub-Admin
+                            <UserCheck className="w-3 h-3 mr-1" /> Manager
                           </Badge>
                         )}
                       </div>

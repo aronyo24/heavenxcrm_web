@@ -30,7 +30,7 @@ const BUCKETS: { key: DueBucket; label: string; tone: string }[] = [
 export default function TasksBoard() {
   const { user } = useAuth()
   // Counselors only ever see their own tasks (server-side), so "All" is for admins.
-  const canSeeAll = user?.role === "admin" || user?.role === "sub_admin"
+  const canSeeAll = !!user?.is_crm_manager
   const [params, setParams] = useSearchParams()
   const view: View = VIEWS.includes(params.get("view") as View) ? (params.get("view") as View) : "open"
   const setView = (v: View) => setParams((p) => { if (v === "open") p.delete("view"); else p.set("view", v); return p }, { replace: true })

@@ -4,6 +4,7 @@ import { AuthProvider } from "@/lib/auth";
 import { RequireCrm } from "@/components/require-crm";
 import { CrmLayout } from "@/components/crm/CrmLayout";
 import { RequireAdmin } from "@/components/require-admin";
+import { RequireCrmManager } from "@/components/require-crm-manager";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import LoginPage from "@/pages/Login";
 import PasswordResetPage from "@/pages/PasswordReset";
@@ -26,13 +27,13 @@ import VisitorAnalytics from "@/pages/admin/VisitorAnalytics";
 import SubmissionAnalytics from "@/pages/admin/SubmissionAnalytics";
 import ChatbotAnalytics from "@/pages/admin/ChatbotAnalytics";
 import ActivityFeed from "@/pages/admin/ActivityFeed";
-import SubAdminManagement from "@/pages/admin/SubAdminManagement";
+import ManagerManagement from "@/pages/admin/ManagerManagement";
 import UsersList from "@/pages/admin/UsersList";
 import UserDetail from "@/pages/admin/UserDetail";
 
-// This app hosts the CRM and admin halves of UniAdmissionHelp's frontend,
+// This app hosts the CRM and admin halves of HeavenxCRM's frontend,
 // split out so it can be deployed on its own staff-only domain/subdomain
-// separately from the public student site (see ../uniadmission, which is
+// separately from the public student site (see ../heavenxcrm, which is
 // student-only). It talks to the same Django API (see VITE_API_BASE_URL) -
 // no backend changes needed.
 export default function App() {
@@ -54,13 +55,13 @@ export default function App() {
             <Route path="/crm" element={<RequireCrm><CrmLayout /></RequireCrm>}>
               <Route index element={<CrmDashboard />} />
               <Route path="pipeline" element={<PipelineKanban />} />
-              <Route path="leads" element={<RequireAdmin><LeadsInbox /></RequireAdmin>} />
+              <Route path="leads" element={<RequireCrmManager><LeadsInbox /></RequireCrmManager>} />
               <Route path="students" element={<StudentsList />} />
               <Route path="students/:slug" element={<StudentProfile />} />
               <Route path="applications" element={<ApplicationsList />} />
               <Route path="communications" element={<CommunicationsList />} />
               <Route path="universities" element={<UniversitiesBrowse />} />
-              <Route path="counselors" element={<RequireAdmin><CounselorManagement /></RequireAdmin>} />
+              <Route path="counselors" element={<RequireCrmManager><CounselorManagement /></RequireCrmManager>} />
               {/* Moved to the admin panel - keep old links working. */}
               <Route path="integrations/facebook" element={<Navigate to="/admin/integrations/facebook" replace />} />
               <Route path="tasks" element={<TasksBoard />} />
@@ -72,7 +73,8 @@ export default function App() {
               <Route path="submissions" element={<SubmissionAnalytics />} />
               <Route path="chatbot" element={<ChatbotAnalytics />} />
               <Route path="activity" element={<ActivityFeed />} />
-              <Route path="sub-admins" element={<SubAdminManagement />} />
+              <Route path="managers" element={<ManagerManagement />} />
+              <Route path="sub-admins" element={<Navigate to="/admin/managers" replace />} />
               <Route path="users" element={<UsersList />} />
               <Route path="users/:id" element={<UserDetail />} />
               <Route path="integrations/facebook" element={<FacebookIntegrationPage />} />

@@ -18,7 +18,7 @@ export function RequireAdmin({ children }: { children: React.ReactNode }) {
   }
 
   if (!user?.is_admin) {
-    // Counselors are valid CRM staff but don't manage the admin dashboard -
+    // Managers and counselors are valid CRM staff but don't manage the admin dashboard -
     // send them to the surface they actually have access to instead of
     // bouncing an already-logged-in user back to the login screen.
     return <Navigate to="/crm" replace />

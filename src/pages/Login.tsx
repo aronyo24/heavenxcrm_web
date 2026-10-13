@@ -11,7 +11,7 @@ type Portal = "crm" | "admin"
 const PORTAL_COPY: Record<Portal, { cardTitle: string; cardSubtitle: string }> = {
   crm: {
     cardTitle: "Staff sign in",
-    cardSubtitle: "This workspace is for counselors and administrators only.",
+    cardSubtitle: "This workspace is for counselors, managers and administrators only.",
   },
   admin: {
     cardTitle: "Administrator sign in",

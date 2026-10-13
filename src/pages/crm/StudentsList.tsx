@@ -281,9 +281,9 @@ export default function StudentsList() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const isCounselor = user?.role === "counselor"
-  // Only full admins may (re)assign a counselor - enforced server-side in
-  // StudentViewSet.assign_counselor too.
-  const isFullAdmin = user?.role === "admin"
+  // Only admins and managers may (re)assign a counselor - enforced
+  // server-side in StudentViewSet.assign_counselor too.
+  const isManager = !!user?.is_crm_manager
   const [students, setStudents] = useState<StudentListItem[]>([])
   const [stages, setStages] = useState<PipelineStage[]>([])
   const [counselors, setCounselors] = useState<Counselor[]>([])
@@ -363,12 +363,12 @@ export default function StudentsList() {
   // "N leads waiting" pointer for admins; the Facebook pull itself runs in
   // CrmLayout and fires LEADS_CHANGED_EVENT.
   useEffect(() => {
-    if (!isFullAdmin) return
+    if (!isManager) return
     const refresh = () => { fetchLeadSummary().then((r) => setWaitingLeads(r.total)).catch(() => {}) }
     refresh()
     window.addEventListener(LEADS_CHANGED_EVENT, refresh)
     return () => window.removeEventListener(LEADS_CHANGED_EVENT, refresh)
-  }, [isFullAdmin])
+  }, [isManager])
 
   useEffect(() => {
     void loadStudents()
@@ -463,10 +463,10 @@ export default function StudentsList() {
 
   const columns = useMemo(
     () => buildColumns(
-      counselors, isFullAdmin, (student, id) => void handleAssign(student, id),
+      counselors, isManager, (student, id) => void handleAssign(student, id),
       stages, (student, key) => handleStageChange(student, key), selection,
     ),
-    [counselors, isFullAdmin, handleAssign, stages, handleStageChange, selection]
+    [counselors, isManager, handleAssign, stages, handleStageChange, selection]
   )
 
   const toolbar = (
@@ -570,7 +570,7 @@ export default function StudentsList() {
         actions={<QuickAddStudentDialog stages={stages} counselors={counselors} leadSources={leadSources} onCreated={handleCreated} />}
       />
 
-      {isFullAdmin && waitingLeads ? (
+      {isManager && waitingLeads ? (
         <Link
           to="/crm/leads"
           className="flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/[0.07] px-4 py-2.5 text-sm transition-colors hover:bg-amber-500/[0.12]"

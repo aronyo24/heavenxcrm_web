@@ -16,10 +16,8 @@ import { PageHeader } from "@/components/crm/PageHeader"
 
 export default function CounselorManagement() {
   const { user } = useAuth()
-  // Provisioning counselor accounts is admin-only - a counselor (or a
-  // sub-admin without it explicitly granted) can view this directory but
-  // shouldn't see controls that only a full admin can actually use.
-  const isFullAdmin = user?.role === "admin"
+  // Provisioning counselor accounts is for admins and managers only.
+  const isManager = !!user?.is_crm_manager
   const [counselors, setCounselors] = useState<Counselor[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -91,7 +89,7 @@ export default function CounselorManagement() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <PageHeader eyebrow="Team" title="Counselors" description="Counselor accounts, caseloads and capacity." />
-        {isFullAdmin && (
+        {isManager && (
           <Dialog open={showForm} onOpenChange={setShowForm}>
             <DialogTrigger asChild>
               <Button size="sm"><Plus className="w-4 h-4 mr-2" /> Add Counselor</Button>
@@ -134,7 +132,7 @@ export default function CounselorManagement() {
                     <p className="text-sm text-muted-foreground mt-1">{counselor.email}</p>
                   </div>
                 </div>
-                {isFullAdmin && counselor.user_id !== user?.id && (
+                {isManager && counselor.user_id !== user?.id && (
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => void toggleActive(counselor)}>
                       {counselor.is_active ? "Deactivate" : "Activate"}

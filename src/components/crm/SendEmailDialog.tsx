@@ -83,7 +83,7 @@ export function SendEmailDialog({
           <DialogTitle>{isReply ? "Reply to Student" : "Send Email"}</DialogTitle>
           <DialogDescription>
             This sends a real email to <span className="font-medium text-foreground">{studentEmail}</span> and is
-            recorded in this student's shared communication history. info@uniadmissionhelp.com and you are
+            recorded in this student's shared communication history. info@heavenxcrm.com and you are
             CC'd, and the student's replies go to both of you and show up in the CRM.
           </DialogDescription>
         </DialogHeader>

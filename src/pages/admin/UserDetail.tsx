@@ -66,7 +66,7 @@ export default function UserDetail() {
       <div className="text-center text-muted-foreground py-24 border border-dashed rounded-2xl flex flex-col items-center gap-3">
         <ShieldOff className="w-8 h-8" />
         <p className="font-medium text-foreground">Access restricted</p>
-        <p className="text-sm max-w-sm">Only admins and sub-admins with the "View all records" permission can see user details.</p>
+        <p className="text-sm max-w-sm">Only admins can see user details.</p>
       </div>
     )
   }
@@ -107,7 +107,7 @@ export default function UserDetail() {
                   )}
                   {user.role === "sub_admin" && (
                     <Badge variant="secondary" className="bg-indigo-500/15 text-indigo-500 border-indigo-500/20 hover:bg-indigo-500/15">
-                      <UserCheck className="w-3 h-3 mr-1" /> Sub-Admin
+                      <UserCheck className="w-3 h-3 mr-1" /> Manager
                     </Badge>
                   )}
                   {user.application_status && (

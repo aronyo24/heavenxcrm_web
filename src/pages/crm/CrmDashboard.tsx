@@ -78,7 +78,7 @@ export default function CrmDashboard() {
   const [recent, setRecent] = useState<StudentListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
-  const canSeeStudents = user?.role === "admin" || !!user?.permissions?.crm_view_own_students
+  const canSeeStudents = !!user?.is_crm_manager || !!user?.permissions?.crm_view_own_students
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -209,7 +209,7 @@ export default function CrmDashboard() {
         <StatTile
           label="New this week" value={data.new_leads_this_week} icon={TrendingUp} tone="sky"
           hint={`${data.new_leads_this_month} in the last 30 days`}
-          onClick={canSeeStudents ? () => navigate(user?.is_admin ? "/crm/leads" : "/crm/students") : undefined}
+          onClick={canSeeStudents ? () => navigate(user?.is_crm_manager ? "/crm/leads" : "/crm/students") : undefined}
         />
         <StatTile
           label="Due today" value={data.tasks_due_today} icon={CalendarCheck} tone="amber"

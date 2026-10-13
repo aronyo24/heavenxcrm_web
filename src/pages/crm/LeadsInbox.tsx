@@ -175,9 +175,8 @@ function CounselorPicker({
 export default function LeadsInbox() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  // Assigning is full-admin only (enforced server-side too);
-  // sub-admins get a read-only view.
-  const canManage = user?.role === "admin"
+  // Assigning is for admins and managers (enforced server-side too).
+  const canManage = !!user?.is_crm_manager
 
   const [leads, setLeads] = useState<StudentListItem[]>([])
   const [summary, setSummary] = useState<LeadSummary | null>(null)

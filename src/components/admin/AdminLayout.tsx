@@ -30,7 +30,7 @@ const SidebarContent = ({
         <ShieldCheck className="h-5 w-5 text-[#13204a]" />
       </div>
       <div className="min-w-0">
-        <p className="text-sm font-bold leading-tight text-white">UniAdmission</p>
+        <p className="text-sm font-bold leading-tight text-white">HeavenxCRM</p>
         <p className="text-[11px] leading-tight text-white/45">Admin console</p>
       </div>
     </div>

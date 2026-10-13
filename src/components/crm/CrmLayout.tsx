@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils"
 type Badges = Partial<Record<NonNullable<NavItem["badgeKey"]>, number>>
 
 interface SidebarContentProps {
-  user: { full_name?: string | null; email?: string | null; role?: string | null; is_admin?: boolean } | null
+  user: { full_name?: string | null; email?: string | null; role?: string | null; is_admin?: boolean; is_crm_manager?: boolean } | null
   roleLabel: string
   visibleItems: NavItem[]
   pathname: string
@@ -38,7 +38,7 @@ const SidebarContent = ({
         <GraduationCap className="h-5 w-5 text-white" />
       </div>
       <div className="min-w-0">
-        <p className="text-sm font-bold leading-tight text-white">UniAdmission</p>
+        <p className="text-sm font-bold leading-tight text-white">HeavenxCRM</p>
         <p className="text-[11px] leading-tight text-white/45">Counselor workspace</p>
       </div>
     </div>
@@ -101,7 +101,7 @@ const SidebarContent = ({
     </nav>
 
     <div className="space-y-1 border-t border-white/10 p-3">
-      {/* Only admins/sub-admins can actually open /admin (see RequireAdmin). */}
+      {/* Only admins can actually open /admin (see RequireAdmin). */}
       {user?.is_admin && (
         <Link
           to="/admin"
@@ -140,12 +140,13 @@ export function CrmLayout() {
   const [searchOpen, setSearchOpen] = useState(false)
 
   const isFullAdmin = user?.role === "admin"
+  const isManager = !!user?.is_crm_manager
   const perms = user?.permissions || {}
-  const roleLabel = isFullAdmin ? "Master admin" : (user?.role?.replace("_", " ") ?? "Counselor")
+  const roleLabel = isFullAdmin ? "Master admin" : user?.role === "sub_admin" ? "Manager" : (user?.role?.replace("_", " ") ?? "Counselor")
 
   const visibleItems = NAV_ITEMS.filter((item) => {
-    if (item.adminOnly && !user?.is_admin) return false
-    if (item.permissionKey && !isFullAdmin && !perms[item.permissionKey]) return false
+    if (item.managerOnly && !isManager) return false
+    if (item.permissionKey && !isManager && !perms[item.permissionKey]) return false
     return true
   })
   const current = visibleItems.find((i) => isNavActive(i, location.pathname))
@@ -166,7 +167,7 @@ export function CrmLayout() {
   // background and bumped immediately when the Leads page changes something.
   const [leadCount, setLeadCount] = useState<number>()
   useEffect(() => {
-    if (!isFullAdmin) return
+    if (!isManager) return
     const refresh = () => {
       if (document.visibilityState !== "visible") return
       fetchLeadSummary().then((s) => setLeadCount(s.total)).catch(() => {})
@@ -178,7 +179,7 @@ export function CrmLayout() {
       window.clearInterval(timer)
       window.removeEventListener(LEADS_CHANGED_EVENT, refresh)
     }
-  }, [isFullAdmin])
+  }, [isManager])
 
   // Open-task counter (due today + overdue) for the Tasks item and the bell.
   const [taskCounts, setTaskCounts] = useState({ today: 0, overdue: 0 })
@@ -203,7 +204,7 @@ export function CrmLayout() {
   // Throttled server-side (sync_if_due), so polling every couple of minutes
   // from every open tab is cheap.
   useEffect(() => {
-    if (!user?.is_admin) return
+    if (!isManager) return
     const sync = () => {
       if (document.visibilityState !== "visible") return
       syncFacebookLeads()
@@ -220,7 +221,7 @@ export function CrmLayout() {
     sync()
     const timer = window.setInterval(sync, 120_000)
     return () => window.clearInterval(timer)
-  }, [user?.is_admin, navigate])
+  }, [isManager, navigate])
   const badges: Badges = { leads: leadCount, tasks: taskBadge }
 
   const handleLogout = async () => {

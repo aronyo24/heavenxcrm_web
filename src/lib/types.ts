@@ -1,10 +1,10 @@
 /**
  * ============================================================================
- * UniAdmissionHelp - TypeScript Type Definitions
+ * HeavenxCRM - TypeScript Type Definitions
  * ============================================================================
  * 
  * This file contains all TypeScript interfaces and types used throughout
- * the UniAdmissionHelp application.
+ * the HeavenxCRM application.
  * 
  * Usage:
  *   import type { University, Course } from '@/lib/types';
@@ -225,6 +225,7 @@ export interface AuthUser {
     role?: 'admin' | 'sub_admin' | 'counselor' | 'user' | null;
     permissions?: AdminPermissions;
     is_admin?: boolean;
+    is_crm_manager?: boolean;
     is_crm_staff?: boolean;
     created_at?: string;
     updated_at?: string;
