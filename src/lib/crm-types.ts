@@ -46,6 +46,15 @@ export interface CounselorPerformance {
 
 export type StudentPriority = "low" | "medium" | "high"
 
+export type LeadStatus =
+  | "new"
+  | "in_progress"
+  | "no_response"
+  | "unreachable"
+  | "not_interested"
+  | "future"
+  | "bad_timing"
+
 // The ad lead form a student submitted, with the form's original questions
 // (see apps/crm/facebook_leads.py). Empty object for leads added by hand.
 export interface LeadForm {
@@ -71,6 +80,8 @@ export interface StudentListItem {
   lead_source_name: string | null
   campaign: string
   priority: StudentPriority
+  lead_status: LeadStatus
+  lead_status_changed_at: string
   target_country: string
   target_degree: string
   is_lost: boolean
@@ -105,12 +116,13 @@ export interface Student extends StudentListItem {
 
 export type ApplicationStatus =
   | "submitted"
-  | "under_review"
-  | "documents_requested"
-  | "offer_received"
-  | "enrolled"
+  | "pending_documents"
+  | "awaiting_results"
+  | "test_passed"
+  | "test_failed"
+  | "unconditional"
   | "rejected"
-  | "withdrawn"
+  | "cancelled"
 
 /** A student's application to one specific course (apps.crm.Application). */
 export interface ApplicationListItem {
@@ -207,6 +219,7 @@ export interface Task {
   due_at: string
   status: TaskStatus
   priority: StudentPriority
+  notify_student: boolean
   completed_at: string | null
   created_at: string
   updated_at: string
@@ -228,6 +241,8 @@ export interface CommunicationLog {
   body_html: string
   to_email: string
   cc_email: string
+  bcc_email?: string
+  attachment_names?: string[]
   status: CommunicationStatus
   error_message: string
   duration_seconds: number | null
@@ -334,6 +349,7 @@ export interface CrmDashboardStats {
   new_leads_this_week: number
   new_leads_this_month: number
   by_stage: CrmDashboardStageCount[]
+  by_lead_status: { key: LeadStatus; label: string; count: number }[]
   tasks_due_today: number
   tasks_overdue: number
 }

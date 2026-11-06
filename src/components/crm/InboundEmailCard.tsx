@@ -169,6 +169,7 @@ export function InboundEmailCard({
         <SendEmailDialog
           studentId={log.student}
           studentEmail={log.student_email}
+          studentName={log.student_name}
           onSent={() => onReplied?.()}
           replySubject={log.subject}
           trigger={

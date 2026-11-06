@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { type ColumnDef } from "@tanstack/react-table"
 import { toast } from "sonner"
 import {
-  CalendarClock, Facebook, Globe, Inbox, RefreshCw, Search, Sparkles, UserPlus, X,
+  CalendarClock, Download, Facebook, Globe, Inbox, Loader2, RefreshCw, Search, Sparkles, UserPlus, X,
 } from "lucide-react"
 
 import { Input } from "@/components/ui/input"
@@ -11,13 +11,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/crm/DataTable"
 import { PersonAvatar } from "@/components/crm/PersonAvatar"
+import { ImportLeadsDialog } from "@/components/crm/ImportLeadsDialog"
+import { LeadStatusCell } from "@/components/crm/LeadStatusCell"
 import { QuickAddStudentDialog } from "@/components/crm/QuickAddStudentDialog"
 import { useAuth } from "@/lib/auth"
 import {
-  announceLeadsChanged, assignStudentCounselor, bulkAssignLeads, fetchCounselors, fetchLeadSources,
+  announceLeadsChanged, assignStudentCounselor, bulkAssignLeads, changeStudentLeadStatus, exportStudents, fetchCounselors, fetchLeadSources,
   fetchLeadSummary, fetchPipelineStages, fetchStudents, LEADS_CHANGED_EVENT, type LeadSummary, type StudentFilters,
 } from "@/lib/crm-api"
-import type { Counselor, LeadSource, PipelineStage, StudentListItem } from "@/lib/crm-types"
+import type { Counselor, LeadSource, LeadStatus, PipelineStage, StudentListItem } from "@/lib/crm-types"
+import { LEAD_STATUS_DOT, LEAD_STATUSES, leadStatusLabel } from "@/lib/lead-status"
 import { cn } from "@/lib/utils"
 import { studentPath } from "@/lib/student-url"
 
@@ -194,9 +197,11 @@ export default function LeadsInbox() {
   const [view, setView] = useState<LeadView>("all")
   const [search, setSearch] = useState("")
   const [sourceFilter, setSourceFilter] = useState("all")
+  const [leadStatusFilter, setLeadStatusFilter] = useState("all")
   const [ordering, setOrdering] = useState<NonNullable<StudentFilters["ordering"]>>("newest")
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [busy, setBusy] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   const activeCounselors = useMemo(() => counselors.filter((c) => c.is_active), [counselors])
   const facebookSourceId = useMemo(
@@ -217,22 +222,34 @@ export default function LeadsInbox() {
     }
   }, [])
 
+  // The table's current filters - shared by the list and the Excel export.
+  const listFilters = useMemo<StudentFilters>(() => ({
+    counselor: "unassigned",
+    search: search || undefined,
+    lead_source: view === "facebook" ? facebookSourceId : sourceFilter !== "all" ? sourceFilter : undefined,
+    received: view === "today" || view === "7d" ? view : undefined,
+    lead_status: leadStatusFilter !== "all" ? leadStatusFilter : undefined,
+    ordering,
+  }), [search, view, facebookSourceId, sourceFilter, leadStatusFilter, ordering])
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      await exportStudents(listFilters)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Export failed")
+    } finally {
+      setExporting(false)
+    }
+  }
+
   // `quiet` = background refresh: no skeleton, no error toast spam.
   const loadLeads = useCallback(async (quiet = false) => {
     if (quiet) setRefreshing(true)
     else setLoading(true)
-    const source = view === "facebook" ? facebookSourceId : sourceFilter !== "all" ? sourceFilter : undefined
     try {
       const [res, summaryRes] = await Promise.all([
-        fetchStudents({
-          page,
-          limit: pageSize,
-          counselor: "unassigned",
-          search: search || undefined,
-          lead_source: source,
-          received: view === "today" || view === "7d" ? view : undefined,
-          ordering,
-        }),
+        fetchStudents({ ...listFilters, page, limit: pageSize }),
         canManage ? fetchLeadSummary() : Promise.resolve(null),
       ])
       // Assigning every lead on the last page would leave it empty; step back.
@@ -261,7 +278,7 @@ export default function LeadsInbox() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [page, pageSize, search, sourceFilter, view, facebookSourceId, ordering, canManage])
+  }, [page, pageSize, listFilters, canManage])
 
   useEffect(() => { void loadLookups() }, [loadLookups])
   useEffect(() => { void loadLeads() }, [loadLeads])
@@ -336,6 +353,16 @@ export default function LeadsInbox() {
   const allOnPageSelected = leads.length > 0 && leads.every((l) => selected.has(l.id))
   const toggleAll = () => setSelected(allOnPageSelected ? new Set() : new Set(leads.map((l) => l.id)))
 
+  const changeLeadStatus = useCallback(async (lead: StudentListItem, leadStatus: LeadStatus) => {
+    try {
+      const updated = await changeStudentLeadStatus(lead.id, leadStatus)
+      setLeads((rows) => rows.map((r) => (r.id === lead.id ? { ...r, lead_status: updated.lead_status } : r)))
+      toast.success(`${lead.full_name} → ${leadStatusLabel(updated.lead_status)}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update lead status")
+    }
+  }, [])
+
   const columns = useMemo<ColumnDef<StudentListItem, unknown>[]>(() => {
     const cols: ColumnDef<StudentListItem, unknown>[] = [
       {
@@ -380,6 +407,11 @@ export default function LeadsInbox() {
             <span className="whitespace-nowrap text-xs text-slate-700 dark:text-slate-300">{parts.join(" · ")}</span>
           ) : <span className="text-xs text-muted-foreground">—</span>
         },
+      },
+      {
+        id: "lead_status",
+        header: "Lead status",
+        cell: ({ row }) => <LeadStatusCell student={row.original} onChange={changeLeadStatus} />,
       },
       { id: "source", header: "Source", cell: ({ row }) => <SourceChip lead={row.original} /> },
       {
@@ -426,9 +458,9 @@ export default function LeadsInbox() {
       },
     ]
     // eslint-disable-next-line react-hooks/exhaustive-deps -- toggle/toggleAll derive from selected + leads
-  }, [canManage, activeCounselors, assignOne, navigate, now, selected, allOnPageSelected, leads])
+  }, [canManage, activeCounselors, assignOne, changeLeadStatus, navigate, now, selected, allOnPageSelected, leads])
 
-  const hasFilters = search !== "" || sourceFilter !== "all"
+  const hasFilters = search !== "" || sourceFilter !== "all" || leadStatusFilter !== "all"
   const pickView = (next: LeadView) => {
     setPage(1)
     setView((current) => (current === next && next !== "all" ? "all" : next))
@@ -446,6 +478,22 @@ export default function LeadsInbox() {
         />
       </div>
       <div className="flex flex-wrap items-center gap-2">
+        <Select value={leadStatusFilter} onValueChange={(v) => { setPage(1); setLeadStatusFilter(v) }}>
+          <SelectTrigger className="h-9 w-44 shadow-none">
+            <SelectValue placeholder="All lead statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All lead statuses</SelectItem>
+            {LEAD_STATUSES.map((s) => (
+              <SelectItem key={s.value} value={s.value}>
+                <span className="flex items-center gap-2">
+                  <span className={cn("h-2 w-2 rounded-full", LEAD_STATUS_DOT[s.value])} />
+                  {s.label}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         {view !== "facebook" ? (
           <Select value={sourceFilter} onValueChange={(v) => { setPage(1); setSourceFilter(v) }}>
             <SelectTrigger className="h-9 w-40 shadow-none">
@@ -472,7 +520,7 @@ export default function LeadsInbox() {
         {hasFilters || view !== "all" ? (
           <Button
             variant="ghost" size="sm" className="h-9 gap-1 text-muted-foreground"
-            onClick={() => { setPage(1); setSearch(""); setSourceFilter("all"); setView("all") }}
+            onClick={() => { setPage(1); setSearch(""); setSourceFilter("all"); setLeadStatusFilter("all"); setView("all") }}
           >
             <X className="h-3.5 w-3.5" />
             Reset
@@ -509,6 +557,17 @@ export default function LeadsInbox() {
           >
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
           </Button>
+          <Button
+            variant="outline" className="h-9 gap-1.5 shadow-sm" title="Download these leads as Excel"
+            disabled={exporting || !totalCount}
+            onClick={() => void handleExport()}
+          >
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Export
+          </Button>
+          {canManage ? (
+            <ImportLeadsDialog onImported={() => { setPage(1); announceLeadsChanged() }} />
+          ) : null}
           <QuickAddStudentDialog
             stages={stages} counselors={counselors} leadSources={leadSources}
             onCreated={() => { setPage(1); announceLeadsChanged() }}

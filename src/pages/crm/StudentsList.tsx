@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { type ColumnDef } from "@tanstack/react-table"
 import { toast } from "sonner"
-import { ArrowRight, Facebook, Inbox, Loader2, Mail, Search, X } from "lucide-react"
+import { ArrowRight, Download, Facebook, Inbox, Loader2, Mail, Search, X } from "lucide-react"
 
 import { Input } from "@/components/ui/input"
 import {
@@ -17,12 +17,14 @@ import { QuickAddStudentDialog } from "@/components/crm/QuickAddStudentDialog"
 import { SendEmailDialog } from "@/components/crm/SendEmailDialog"
 import { QuickChatDialog } from "@/components/crm/QuickChatDialog"
 import { BulkEmailDialog } from "@/components/crm/BulkEmailDialog"
+import { LeadStatusCell } from "@/components/crm/LeadStatusCell"
 import { useAuth } from "@/lib/auth"
 import {
-  announceLeadsChanged, assignStudentCounselor, changeStudentStage, fetchCounselors, fetchLeadSources, fetchLeadSummary, fetchPipelineStages,
-  fetchStudents, LEADS_CHANGED_EVENT, type StudentFilters,
+  announceLeadsChanged, assignStudentCounselor, bulkChangeLeadStatus, changeStudentLeadStatus, changeStudentStage, fetchCounselors, fetchLeadSources, fetchLeadSummary, fetchPipelineStages,
+  exportStudents, fetchStudents, LEADS_CHANGED_EVENT, type StudentFilters,
 } from "@/lib/crm-api"
-import type { Counselor, LeadSource, PipelineStage, StudentListItem } from "@/lib/crm-types"
+import type { Counselor, LeadSource, LeadStatus, PipelineStage, StudentListItem } from "@/lib/crm-types"
+import { LEAD_STATUS_DOT, LEAD_STATUSES, leadStatusLabel } from "@/lib/lead-status"
 import { STAGE_COLORS, STAGE_DOTS } from "@/lib/stage-colors"
 import { studentPath } from "@/lib/student-url"
 import { cn } from "@/lib/utils"
@@ -108,9 +110,9 @@ function StatusCell({
     <div onClick={(e) => e.stopPropagation()} title={`${student.stage_label} for ${daysSince(student.stage_changed_at)} - click to change`}>
       <Select value={student.stage_key} disabled={saving} onValueChange={(v) => void pick(v)}>
         <SelectTrigger
-          aria-label={`Change status for ${student.full_name}`}
+          aria-label={`Change pipeline status for ${student.full_name}`}
           className={cn(
-            "h-8 w-[130px] gap-2 rounded-lg border px-2.5 text-xs font-semibold shadow-none transition-all",
+            "h-8 w-[168px] gap-2 rounded-lg border px-2.5 text-xs font-semibold shadow-none transition-all",
             "hover:shadow-sm hover:ring-2 hover:ring-offset-0 hover:ring-current/15 data-[state=open]:ring-2 data-[state=open]:ring-current/20",
             "disabled:cursor-wait disabled:opacity-100",
             STAGE_COLORS[student.stage_key] ?? "bg-muted text-muted-foreground",
@@ -169,6 +171,7 @@ const buildColumns = (
   onAssign: (student: StudentListItem, counselorId: number | null) => void,
   stages: PipelineStage[],
   onStageChange: (student: StudentListItem, stageKey: string) => Promise<void>,
+  onLeadStatusChange: (student: StudentListItem, leadStatus: LeadStatus) => Promise<void>,
   selection: Selection,
 ): ColumnDef<StudentListItem, unknown>[] => [
   {
@@ -217,8 +220,13 @@ const buildColumns = (
     ) : <span className="text-xs text-muted-foreground">—</span>,
   },
   {
+    accessorKey: "lead_status",
+    header: "Lead status",
+    cell: ({ row }) => <LeadStatusCell student={row.original} onChange={onLeadStatusChange} />,
+  },
+  {
     accessorKey: "stage_label",
-    header: "Status",
+    header: "Pipeline",
     cell: ({ row }) => <StatusCell student={row.original} stages={stages} onChange={onStageChange} />,
   },
   {
@@ -264,6 +272,7 @@ const buildColumns = (
           <SendEmailDialog
             studentId={row.original.id}
             studentEmail={row.original.email}
+            studentName={row.original.full_name}
             onSent={() => {}}
             trigger={
               <Button variant="outline" size="icon" className="h-8 w-8" title={`Email ${row.original.full_name}`}>
@@ -295,6 +304,7 @@ export default function StudentsList() {
   const [total, setTotal] = useState<number>()
   const [search, setSearch] = useState("")
   const [stageFilter, setStageFilter] = useState<string>("all")
+  const [leadStatusFilter, setLeadStatusFilter] = useState<string>("all")
   const [counselorFilter, setCounselorFilter] = useState<string>("all")
   const [sourceFilter, setSourceFilter] = useState<string>("all")
   const [ordering, setOrdering] = useState<NonNullable<StudentFilters["ordering"]>>("newest")
@@ -307,6 +317,7 @@ export default function StudentsList() {
   // Kept across pages and filters, so students can be picked from several pages.
   const [selected, setSelected] = useState<Map<number, StudentListItem>>(new Map())
   const [bulkEmailOpen, setBulkEmailOpen] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   const myCounselorId = useMemo(
     () => counselors.find((c) => c.user_id === Number(user?.id))?.id,
@@ -331,20 +342,33 @@ export default function StudentsList() {
     }
   }, [])
 
+  // The table's current filters - shared by the list and the Excel export.
+  const listFilters = useMemo<StudentFilters>(() => ({
+    search: search || undefined,
+    stage: stageFilter !== "all" ? stageFilter : undefined,
+    lead_status: leadStatusFilter !== "all" ? leadStatusFilter : undefined,
+    // Unassigned students are leads - they live on the Leads page until
+    // an admin gives them a counselor.
+    counselor: effectiveCounselorFilter !== "all" ? effectiveCounselorFilter : "assigned",
+    lead_source: sourceFilter !== "all" ? sourceFilter : undefined,
+    ordering,
+  }), [search, stageFilter, leadStatusFilter, effectiveCounselorFilter, sourceFilter, ordering])
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      await exportStudents(listFilters)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Export failed")
+    } finally {
+      setExporting(false)
+    }
+  }
+
   const loadStudents = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetchStudents({
-        page,
-        limit: pageSize,
-        search: search || undefined,
-        stage: stageFilter !== "all" ? stageFilter : undefined,
-        // Unassigned students are leads - they live on the Leads page until
-        // an admin gives them a counselor.
-        counselor: effectiveCounselorFilter !== "all" ? effectiveCounselorFilter : "assigned",
-        lead_source: sourceFilter !== "all" ? sourceFilter : undefined,
-        ordering,
-      })
+      const res = await fetchStudents({ ...listFilters, page, limit: pageSize })
       setStudents(res.data)
       setTotalPages(res.pagination.totalPages)
       setTotal(res.pagination.total)
@@ -354,7 +378,7 @@ export default function StudentsList() {
     } finally {
       setLoading(false)
     }
-  }, [page, pageSize, search, stageFilter, effectiveCounselorFilter, sourceFilter, ordering])
+  }, [page, pageSize, listFilters])
 
   useEffect(() => {
     void loadLookups()
@@ -461,12 +485,40 @@ export default function StudentsList() {
     }
   }, [students, selected])
 
+  const handleLeadStatusChange = useCallback(async (student: StudentListItem, leadStatus: LeadStatus) => {
+    try {
+      const updated = await changeStudentLeadStatus(student.id, leadStatus)
+      setStudents((rows) => rows.map((r) => (
+        r.id === student.id ? { ...r, lead_status: updated.lead_status, lead_status_changed_at: updated.lead_status_changed_at } : r
+      )))
+      toast.success(`${student.full_name} → ${leadStatusLabel(updated.lead_status)}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update lead status")
+    }
+  }, [])
+
+  const [bulkLeadStatusSaving, setBulkLeadStatusSaving] = useState(false)
+  const handleBulkLeadStatus = async (leadStatus: LeadStatus) => {
+    const ids = [...selected.keys()]
+    setBulkLeadStatusSaving(true)
+    try {
+      await bulkChangeLeadStatus(ids, leadStatus)
+      setStudents((rows) => rows.map((r) => (selected.has(r.id) ? { ...r, lead_status: leadStatus } : r)))
+      toast.success(`${ids.length} student${ids.length === 1 ? "" : "s"} marked ${leadStatusLabel(leadStatus)}`)
+      setSelected(new Map())
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update lead status")
+    } finally {
+      setBulkLeadStatusSaving(false)
+    }
+  }
+
   const columns = useMemo(
     () => buildColumns(
       counselors, isManager, (student, id) => void handleAssign(student, id),
-      stages, (student, key) => handleStageChange(student, key), selection,
+      stages, (student, key) => handleStageChange(student, key), handleLeadStatusChange, selection,
     ),
-    [counselors, isManager, handleAssign, stages, handleStageChange, selection]
+    [counselors, isManager, handleAssign, stages, handleStageChange, handleLeadStatusChange, selection]
   )
 
   const toolbar = (
@@ -484,12 +536,28 @@ export default function StudentsList() {
         />
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Select value={stageFilter} onValueChange={(v) => { setPage(1); setStageFilter(v) }}>
-          <SelectTrigger className="h-9 w-48 shadow-none">
-            <SelectValue placeholder="All statuses" />
+        <Select value={leadStatusFilter} onValueChange={(v) => { setPage(1); setLeadStatusFilter(v) }}>
+          <SelectTrigger className="h-9 w-44 shadow-none">
+            <SelectValue placeholder="All lead statuses" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="all">All lead statuses</SelectItem>
+            {LEAD_STATUSES.map((s) => (
+              <SelectItem key={s.value} value={s.value}>
+                <span className="flex items-center gap-2">
+                  <span className={cn("h-2 w-2 rounded-full", LEAD_STATUS_DOT[s.value])} />
+                  {s.label}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={stageFilter} onValueChange={(v) => { setPage(1); setStageFilter(v) }}>
+          <SelectTrigger className="h-9 w-48 shadow-none">
+            <SelectValue placeholder="All pipeline statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All pipeline statuses</SelectItem>
             {stageOptions.map((stage) => (
               <SelectItem key={stage.key} value={stage.key}>
                 {stage.label}
@@ -554,7 +622,7 @@ export default function StudentsList() {
             <SelectItem value="newest">Newest first</SelectItem>
             <SelectItem value="oldest">Oldest first</SelectItem>
             <SelectItem value="name">Name A–Z</SelectItem>
-            <SelectItem value="stage">By status</SelectItem>
+            <SelectItem value="stage">By pipeline status</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -567,7 +635,19 @@ export default function StudentsList() {
         eyebrow="Caseload"
         title="Students"
         description="Students with an assigned counselor. New enquiries start in Leads."
-        actions={<QuickAddStudentDialog stages={stages} counselors={counselors} leadSources={leadSources} onCreated={handleCreated} />}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline" className="gap-1.5" title="Download these students as Excel"
+              disabled={exporting || !total}
+              onClick={() => void handleExport()}
+            >
+              {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Export
+            </Button>
+            <QuickAddStudentDialog stages={stages} counselors={counselors} leadSources={leadSources} onCreated={handleCreated} />
+          </div>
+        }
       />
 
       {isManager && waitingLeads ? (
@@ -590,7 +670,7 @@ export default function StudentsList() {
         columns={columns}
         data={students}
         isLoading={loading}
-        emptyMessage={search || stageFilter !== "all" || sourceFilter !== "all" ? "No students match these filters." : "No students yet. Assign a lead to a counselor or add a student."}
+        emptyMessage={search || stageFilter !== "all" || leadStatusFilter !== "all" || sourceFilter !== "all" ? "No students match these filters." : "No students yet. Assign a lead to a counselor or add a student."}
         toolbar={toolbar}
         totalCount={total}
         itemLabel="students"
@@ -619,6 +699,22 @@ export default function StudentsList() {
             >
               <Mail className="h-3.5 w-3.5" /> Send email
             </Button>
+            <Select value="" disabled={bulkLeadStatusSaving} onValueChange={(v) => void handleBulkLeadStatus(v as LeadStatus)}>
+              <SelectTrigger className="h-8 w-40 border-white/20 bg-white/10 text-xs text-white shadow-none">
+                {bulkLeadStatusSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                <SelectValue placeholder="Set lead status" />
+              </SelectTrigger>
+              <SelectContent>
+                {LEAD_STATUSES.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>
+                    <span className="flex items-center gap-2">
+                      <span className={cn("h-2 w-2 rounded-full", LEAD_STATUS_DOT[s.value])} />
+                      {s.label}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button
               size="icon" variant="ghost" title="Clear selection"
               className="h-8 w-8 text-white/60 hover:bg-white/10 hover:text-white"

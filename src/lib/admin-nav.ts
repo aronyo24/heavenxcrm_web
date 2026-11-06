@@ -1,4 +1,4 @@
-import { Activity, Bot, Facebook, FileText, Globe, LayoutDashboard, Shield, Users } from "lucide-react"
+import { Activity, Bot, Facebook, FileText, Globe, LayoutDashboard, Mail, Shield, UserCircle, Users } from "lucide-react"
 import type { AdminPermissions } from "@/lib/types"
 
 export interface AdminNavItem {
@@ -6,7 +6,7 @@ export interface AdminNavItem {
   label: string
   icon: React.ElementType
   description: string
-  section: "Overview" | "Analytics" | "People" | "Integrations"
+  section: "Overview" | "Analytics" | "People" | "Integrations" | "Account"
   exact?: boolean
   permissionKey?: keyof AdminPermissions
   adminOnly?: boolean
@@ -22,9 +22,11 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { to: "/admin/users", label: "Users", icon: Users, section: "People", permissionKey: "view_all_records", description: "Registered accounts on the public site" },
   { to: "/admin/managers", label: "Managers", icon: Shield, section: "People", adminOnly: true, description: "Managers with full CRM access" },
   { to: "/admin/integrations/facebook", label: "Facebook leads", icon: Facebook, section: "Integrations", adminOnly: true, description: "Lead Ads connection and sync" },
+  { to: "/admin/integrations/email", label: "Email", icon: Mail, section: "Integrations", adminOnly: true, description: "Mail server, CC/BCC rules, branding and templates" },
+  { to: "/admin/settings", label: "Settings", icon: UserCircle, section: "Account", description: "Your profile and password" },
 ]
 
-export const ADMIN_NAV_SECTIONS: AdminNavItem["section"][] = ["Overview", "Analytics", "People", "Integrations"]
+export const ADMIN_NAV_SECTIONS: AdminNavItem["section"][] = ["Overview", "Analytics", "People", "Integrations", "Account"]
 
 export function isAdminNavActive(item: AdminNavItem, pathname: string) {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname

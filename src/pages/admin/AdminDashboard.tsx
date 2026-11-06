@@ -23,22 +23,22 @@ type Period = (typeof PERIODS)[number]
 // Same palette as StageBadge so the funnel matches the CRM pipeline.
 const STAGE_BAR: Record<string, string> = {
   new: "bg-slate-400",
-  contacted: "bg-blue-500",
-  counseling: "bg-indigo-500",
   applied: "bg-purple-500",
-  offer: "bg-amber-500",
-  visa: "bg-cyan-500",
+  awaiting_sfe: "bg-amber-500",
+  sfe_approved: "bg-cyan-500",
   enrolled: "bg-emerald-500",
+  deferred: "bg-blue-500",
 }
 
 const APP_STATUS_LABEL: Record<string, string> = {
-  submitted: "Submitted",
-  under_review: "Under review",
-  documents_requested: "Documents requested",
-  offer_received: "Offer received",
-  enrolled: "Enrolled",
+  submitted: "Application submitted",
+  pending_documents: "Pending documents",
+  awaiting_results: "Awaiting interview / test results",
+  test_passed: "Interview / test passed",
+  test_failed: "Interview / test failed",
+  unconditional: "Unconditional",
   rejected: "Rejected",
-  withdrawn: "Withdrawn",
+  cancelled: "Cancelled",
 }
 
 function greeting(hour: number) {
@@ -555,7 +555,7 @@ export default function AdminDashboard() {
         <AttentionItem icon={Hourglass} count={att.stuck_students} label="stalled students" to="/crm/pipeline" severity="warning" detail="No status change in 14+ days" />
         <AttentionItem
           icon={FileText} count={att.pending_applications} label="applications to review" to="/crm/applications" severity="warning"
-          detail={att.documents_requested ? `${att.documents_requested} more waiting on documents` : "Submitted or under review"}
+          detail={att.documents_requested ? `${att.documents_requested} more waiting on documents` : "Submitted or awaiting test results"}
         />
       </Panel>
 

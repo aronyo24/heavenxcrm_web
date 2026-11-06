@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"
 import { toast } from "sonner"
 import {
   ArrowRight, Award, BookOpen, CalendarDays, Check, ClipboardCheck, Copy, Download, ExternalLink, FileClock, FileText,
-  GraduationCap, Languages, Lock, Mail, MessageSquareText, Phone, RotateCcw, Send, School, UserRound, XCircle,
+  Languages, Lock, Mail, MessageSquareText, Phone, RotateCcw, Send, School, UserRound, XCircle,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -35,34 +35,41 @@ const TONE = {
 // The sensible next moves from each status, so counselors rarely need the full list.
 const NEXT_STEPS: Record<ApplicationStatus, NextStep[]> = {
   submitted: [
-    { status: "under_review", label: "Start review", icon: ClipboardCheck, tone: TONE.primary },
-    { status: "documents_requested", label: "Request documents", icon: FileClock, tone: TONE.amber },
+    { status: "awaiting_results", label: "Interview / test booked", icon: CalendarDays, tone: TONE.primary },
+    { status: "pending_documents", label: "Pending documents", icon: FileClock, tone: TONE.amber },
+    { status: "unconditional", label: "Unconditional", icon: Award, tone: TONE.neutral },
   ],
-  under_review: [
-    { status: "offer_received", label: "Offer received", icon: Award, tone: TONE.primary },
-    { status: "documents_requested", label: "Request documents", icon: FileClock, tone: TONE.amber },
+  pending_documents: [
+    { status: "submitted", label: "Documents received", icon: Check, tone: TONE.primary },
+    { status: "awaiting_results", label: "Interview / test booked", icon: CalendarDays, tone: TONE.neutral },
+    { status: "cancelled", label: "Cancel", icon: XCircle, tone: TONE.red },
+  ],
+  awaiting_results: [
+    { status: "test_passed", label: "Passed", icon: ClipboardCheck, tone: TONE.primary },
+    { status: "test_failed", label: "Failed", icon: XCircle, tone: TONE.red },
+  ],
+  test_passed: [
+    { status: "unconditional", label: "Unconditional", icon: Award, tone: TONE.primary },
+    { status: "pending_documents", label: "Pending documents", icon: FileClock, tone: TONE.amber },
     { status: "rejected", label: "Rejected", icon: XCircle, tone: TONE.red },
   ],
-  documents_requested: [
-    { status: "under_review", label: "Documents received", icon: Check, tone: TONE.primary },
-    { status: "offer_received", label: "Offer received", icon: Award, tone: TONE.neutral },
-    { status: "rejected", label: "Rejected", icon: XCircle, tone: TONE.red },
+  test_failed: [
+    { status: "awaiting_results", label: "Retake booked", icon: RotateCcw, tone: TONE.neutral },
+    { status: "cancelled", label: "Cancel", icon: XCircle, tone: TONE.red },
   ],
-  offer_received: [
-    { status: "enrolled", label: "Mark enrolled", icon: GraduationCap, tone: TONE.primary },
-    { status: "withdrawn", label: "Student withdrew", icon: XCircle, tone: TONE.red },
-  ],
-  enrolled: [{ status: "under_review", label: "Reopen", icon: RotateCcw, tone: TONE.neutral }],
-  rejected: [{ status: "under_review", label: "Reopen", icon: RotateCcw, tone: TONE.neutral }],
-  withdrawn: [{ status: "under_review", label: "Reopen", icon: RotateCcw, tone: TONE.neutral }],
+  unconditional: [{ status: "submitted", label: "Reopen", icon: RotateCcw, tone: TONE.neutral }],
+  rejected: [{ status: "submitted", label: "Reopen", icon: RotateCcw, tone: TONE.neutral }],
+  cancelled: [{ status: "submitted", label: "Reopen", icon: RotateCcw, tone: TONE.neutral }],
 }
 
 // Starting text for the student message, per target status.
 const MESSAGE_TEMPLATES: Partial<Record<ApplicationStatus, (first: string) => string>> = {
-  under_review: (n) => `Hi ${n}, we've started reviewing your application and will update you soon.`,
-  documents_requested: (n) => `Hi ${n}, to continue your application please upload:\n- \n- `,
-  offer_received: (n) => `Congratulations ${n}! You've received an offer. Your counselor will contact you about the next steps.`,
-  enrolled: (n) => `Congratulations ${n}, your enrolment is confirmed!`,
+  submitted: (n) => `Hi ${n}, your application has been submitted to the university. We'll update you as soon as we hear back.`,
+  pending_documents: (n) => `Hi ${n}, to continue your application please upload:\n- \n- `,
+  awaiting_results: (n) => `Hi ${n}, thanks for completing your interview / English test. We're waiting for the result and will let you know.`,
+  test_passed: (n) => `Congratulations ${n}! You passed your interview / English test. We'll keep you updated on the university's decision.`,
+  test_failed: (n) => `Hi ${n}, unfortunately the interview / English test was not successful this time. Your counselor will contact you about the next steps.`,
+  unconditional: (n) => `Congratulations ${n}! You've received an unconditional offer. Your counselor will contact you about the next steps.`,
   rejected: (n) => `Hi ${n}, unfortunately this application was not successful. Your counselor will help you with other options.`,
 }
 
@@ -126,7 +133,7 @@ function ProgressTracker({ app }: { app: Application }) {
                 {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
               </span>
               <span className={cn("whitespace-nowrap text-[11px]", current || done ? "font-semibold text-foreground" : "text-muted-foreground")}>
-                {current && app.status === "documents_requested" ? "Docs requested" : step.label}
+                {current && app.status === "pending_documents" ? "Docs pending" : step.label}
               </span>
             </div>
             {i < APPLICATION_STEPS.length - 1 ? (
@@ -383,7 +390,7 @@ export function ApplicationDetailSheet({
                       <FileText className="mx-auto h-8 w-8 text-slate-300" />
                       <p className="mt-2 text-sm font-medium">No documents yet</p>
                       <p className="mt-1 text-xs text-muted-foreground">Ask {firstName} for the files you need.</p>
-                      <Button size="sm" variant="outline" className="mt-3 gap-1.5" onClick={() => { pickStatus("documents_requested"); setTab("review") }}>
+                      <Button size="sm" variant="outline" className="mt-3 gap-1.5" onClick={() => { pickStatus("pending_documents"); setTab("review") }}>
                         <FileClock className="h-3.5 w-3.5" /> Request documents
                       </Button>
                     </div>

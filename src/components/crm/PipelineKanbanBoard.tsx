@@ -17,13 +17,12 @@ import { cn } from "@/lib/utils"
 // Same hues as StageBadge so a stage looks the same everywhere.
 const STAGE_ACCENT: Record<string, { dot: string; top: string }> = {
   new: { dot: "bg-slate-400", top: "border-t-slate-400" },
-  contacted: { dot: "bg-blue-500", top: "border-t-blue-500" },
-  counseling: { dot: "bg-indigo-500", top: "border-t-indigo-500" },
   applied: { dot: "bg-purple-500", top: "border-t-purple-500" },
-  offer: { dot: "bg-amber-500", top: "border-t-amber-500" },
-  visa: { dot: "bg-cyan-500", top: "border-t-cyan-500" },
+  awaiting_sfe: { dot: "bg-amber-500", top: "border-t-amber-500" },
+  sfe_approved: { dot: "bg-cyan-500", top: "border-t-cyan-500" },
   enrolled: { dot: "bg-emerald-500", top: "border-t-emerald-500" },
-  lost: { dot: "bg-red-500", top: "border-t-red-500" },
+  deferred: { dot: "bg-blue-500", top: "border-t-blue-500" },
+  withdrawn: { dot: "bg-red-500", top: "border-t-red-500" },
 }
 
 const PRIORITY_DOT: Record<StudentListItem["priority"], string> = {

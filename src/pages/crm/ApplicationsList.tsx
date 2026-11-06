@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { type ColumnDef } from "@tanstack/react-table"
 import { toast } from "sonner"
-import { Award, ClipboardCheck, FileClock, GraduationCap, Paperclip, Search, X } from "lucide-react"
+import { Award, ClipboardCheck, FileClock, Hourglass, Paperclip, Search, X } from "lucide-react"
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -32,7 +32,7 @@ function StatusPill({ status }: { status: ApplicationStatus }) {
   )
 }
 
-// Four small segments: Submitted → In review → Offer → Enrolled.
+// Four small segments: Submitted → Interview / Test → Passed → Unconditional.
 function ProgressBar({ status }: { status: ApplicationStatus }) {
   const closed = isClosedApplication(status)
   const index = applicationStepIndex(status)
@@ -242,20 +242,20 @@ export default function ApplicationsList() {
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile
-          label="To review" value={counts?.submitted ?? "–"} hint="New, not started yet" icon={ClipboardCheck} tone="sky"
+          label="Submitted" value={counts?.submitted ?? "–"} hint="Sent to the university" icon={ClipboardCheck} tone="sky"
           active={statusFilter === "submitted"} onClick={() => pickStatus("submitted")}
         />
         <StatTile
-          label="Waiting on documents" value={counts?.documents_requested ?? "–"} hint="Student needs to send files" icon={FileClock} tone="amber"
-          active={statusFilter === "documents_requested"} onClick={() => pickStatus("documents_requested")}
+          label="Pending documents" value={counts?.pending_documents ?? "–"} hint="Student needs to send files" icon={FileClock} tone="amber"
+          active={statusFilter === "pending_documents"} onClick={() => pickStatus("pending_documents")}
         />
         <StatTile
-          label="Offers" value={counts?.offer_received ?? "–"} hint="Offer received from university" icon={Award} tone="emerald"
-          active={statusFilter === "offer_received"} onClick={() => pickStatus("offer_received")}
+          label="Awaiting test results" value={counts?.awaiting_results ?? "–"} hint="Interview / English test done" icon={Hourglass} tone="violet"
+          active={statusFilter === "awaiting_results"} onClick={() => pickStatus("awaiting_results")}
         />
         <StatTile
-          label="Enrolled" value={counts?.enrolled ?? "–"} hint="Successfully placed" icon={GraduationCap} tone="violet"
-          active={statusFilter === "enrolled"} onClick={() => pickStatus("enrolled")}
+          label="Unconditional" value={counts?.unconditional ?? "–"} hint="Unconditional offer received" icon={Award} tone="emerald"
+          active={statusFilter === "unconditional"} onClick={() => pickStatus("unconditional")}
         />
       </div>
 

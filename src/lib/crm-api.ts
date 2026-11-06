@@ -26,6 +26,7 @@ import type {
   CrmMessage,
   CrmPaginatedResponse,
   LeadSource,
+  LeadStatus,
   MyCrmStatus,
   PipelineStage,
   Student,
@@ -104,6 +105,7 @@ export async function fetchCounselorPerformance(id: number): Promise<CounselorPe
 
 export interface StudentFilters {
   stage?: string
+  lead_status?: LeadStatus | string
   counselor?: number | string
   lead_source?: number | string
   is_lost?: boolean
@@ -116,6 +118,43 @@ export interface StudentFilters {
 
 export async function fetchStudents(filters: StudentFilters = {}): Promise<CrmPaginatedResponse<StudentListItem>> {
   const response = await apiClient.get("/crm/students/", { params: filters })
+  return response.data
+}
+
+// Excel export/import. Export uses the same filters (and server-side scoping)
+// as fetchStudents; import creates unassigned leads in the "new" stage.
+function saveBlob(blob: Blob, fallbackName: string, disposition?: string) {
+  const name = /filename="?([^"]+)"?/.exec(disposition || "")?.[1] || fallbackName
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = url
+  link.download = name
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
+export async function exportStudents(filters: Omit<StudentFilters, "page" | "limit"> = {}): Promise<void> {
+  const response = await apiClient.get("/crm/students/export/", { params: filters, responseType: "blob" })
+  saveBlob(response.data, "students.xlsx", response.headers["content-disposition"])
+}
+
+export async function downloadLeadImportTemplate(): Promise<void> {
+  const response = await apiClient.get("/crm/students/import_template/", { responseType: "blob" })
+  saveBlob(response.data, "lead-import-template.xlsx", response.headers["content-disposition"])
+}
+
+export interface LeadImportResult {
+  created: number
+  total_rows: number
+  skipped: { row: number; reason: string }[]
+}
+
+export async function importLeads(file: File): Promise<LeadImportResult> {
+  const form = new FormData()
+  form.append("file", file)
+  const response = await apiClient.post("/crm/students/import_leads/", form)
   return response.data
 }
 
@@ -155,6 +194,28 @@ export async function changeStudentStage(
     stage_key: stageKey,
     lost_reason: lostReason,
   })
+  return response.data
+}
+
+export async function changeStudentLeadStatus(id: number | string, leadStatus: LeadStatus): Promise<Student> {
+  const response = await apiClient.post(`/crm/students/${id}/change_lead_status/`, { lead_status: leadStatus })
+  return response.data
+}
+
+export async function bulkChangeLeadStatus(ids: number[], leadStatus: LeadStatus): Promise<{ updated: number }> {
+  const response = await apiClient.post("/crm/students/bulk_lead_status/", { ids, lead_status: leadStatus })
+  return response.data
+}
+
+export interface LeadStatusSummary {
+  total: number
+  by_lead_status: Record<LeadStatus, number>
+}
+
+export async function fetchLeadStatusSummary(
+  filters: Omit<StudentFilters, "page" | "limit" | "lead_status"> = {}
+): Promise<LeadStatusSummary> {
+  const response = await apiClient.get("/crm/students/status_summary/", { params: filters })
   return response.data
 }
 
@@ -355,11 +416,30 @@ export async function logCommunication(payload: LogCommunicationPayload): Promis
   return response.data
 }
 
-export async function sendStudentEmail(
-  studentId: number | string,
-  payload: { subject: string; message: string }
-): Promise<CommunicationLog> {
-  const response = await apiClient.post(`/crm/students/${studentId}/send_email/`, payload)
+export interface EmailPayload {
+  subject: string
+  message: string
+  cc?: string[]
+  bcc?: string[]
+  attachments?: File[]
+  template_id?: number | null
+}
+
+// Multipart so files can travel with the email; {placeholders} are filled in server-side.
+function emailFormData(payload: EmailPayload, ids?: number[]) {
+  const form = new FormData()
+  form.append("subject", payload.subject)
+  form.append("message", payload.message)
+  payload.cc?.forEach((a) => form.append("cc", a))
+  payload.bcc?.forEach((a) => form.append("bcc", a))
+  payload.attachments?.forEach((f) => form.append("attachments", f))
+  if (payload.template_id) form.append("template_id", String(payload.template_id))
+  ids?.forEach((id) => form.append("ids", String(id)))
+  return form
+}
+
+export async function sendStudentEmail(studentId: number | string, payload: EmailPayload): Promise<CommunicationLog> {
+  const response = await apiClient.post(`/crm/students/${studentId}/send_email/`, emailFormData(payload))
   return response.data
 }
 
@@ -369,12 +449,208 @@ export interface BulkEmailResult {
   no_email: { id: number; name: string }[]
 }
 
-// One separate email per student; "{first_name}" / "{name}" are personalised server-side.
-export async function bulkEmailStudents(
-  ids: number[],
-  payload: { subject: string; message: string }
-): Promise<BulkEmailResult> {
-  const response = await apiClient.post("/crm/students/bulk_email/", { ids, ...payload })
+// One separate, personalised email per student over a single mail-server session.
+export async function bulkEmailStudents(ids: number[], payload: EmailPayload): Promise<BulkEmailResult> {
+  const response = await apiClient.post("/crm/students/bulk_email/", emailFormData(payload, ids), { timeout: 600000 })
+  return response.data
+}
+
+// ---------------------------------------------------------------------------
+// Email templates (read by all staff, managed by admins/managers)
+// ---------------------------------------------------------------------------
+
+export type EmailTemplateCategory =
+  | "enquiry" | "follow_up" | "documents" | "application" | "offer" | "visa" | "payment" | "event" | "automated" | "general"
+
+export interface EmailTemplate {
+  id: number
+  name: string
+  category: EmailTemplateCategory
+  category_label: string
+  subject: string
+  body: string
+  cta_label: string
+  cta_url: string
+  is_active: boolean
+  usage_count: number
+  last_used_at: string | null
+  created_by_name: string | null
+  updated_at: string
+}
+
+export type EmailTemplateInput = Pick<EmailTemplate, "name" | "category" | "subject" | "body" | "cta_label" | "cta_url" | "is_active">
+
+export interface EmailPlaceholder {
+  key: string
+  label: string
+  example: string
+}
+
+export async function fetchEmailTemplates(includeInactive = false): Promise<EmailTemplate[]> {
+  const response = await apiClient.get("/crm/email-templates/", { params: includeInactive ? { include_inactive: 1 } : {} })
+  return response.data
+}
+
+export async function fetchEmailPlaceholders(): Promise<{
+  placeholders: EmailPlaceholder[]
+  /** Only filled in on automated emails. */
+  event_placeholders: EmailPlaceholder[]
+  categories: { key: EmailTemplateCategory; label: string }[]
+}> {
+  const response = await apiClient.get("/crm/email-templates/placeholders/")
+  return response.data
+}
+
+export async function createEmailTemplate(payload: EmailTemplateInput): Promise<EmailTemplate> {
+  const response = await apiClient.post("/crm/email-templates/", payload)
+  return response.data
+}
+
+export async function updateEmailTemplate(id: number, payload: Partial<EmailTemplateInput>): Promise<EmailTemplate> {
+  const response = await apiClient.patch(`/crm/email-templates/${id}/`, payload)
+  return response.data
+}
+
+export async function deleteEmailTemplate(id: number): Promise<void> {
+  await apiClient.delete(`/crm/email-templates/${id}/`)
+}
+
+export async function duplicateEmailTemplate(id: number): Promise<EmailTemplate> {
+  const response = await apiClient.post(`/crm/email-templates/${id}/duplicate/`)
+  return response.data
+}
+
+export async function previewEmailTemplate(payload: {
+  subject: string
+  body: string
+  cta_label?: string
+  cta_url?: string
+  student_id?: number
+  /** Show the panels an automated email for this event adds. */
+  event?: string
+}): Promise<{ subject: string; html: string }> {
+  const response = await apiClient.post("/crm/email-templates/preview/", payload)
+  return response.data
+}
+
+export async function importEmailTemplates(file: File, overwrite: boolean): Promise<{ created: number; updated: number; skipped: number }> {
+  const form = new FormData()
+  form.append("file", file)
+  form.append("overwrite", overwrite ? "true" : "false")
+  const response = await apiClient.post("/crm/email-templates/import/", form)
+  return response.data
+}
+
+export async function exportEmailTemplates(): Promise<Blob> {
+  const response = await apiClient.get("/crm/email-templates/export/", { responseType: "blob" })
+  return response.data
+}
+
+export interface EmailAutomationRule {
+  event: string
+  label: string
+  enabled: boolean
+  template: number | null
+  template_active: boolean
+}
+
+export interface EmailAutomationState {
+  enabled: boolean
+  groups: { key: string; label: string; rules: EmailAutomationRule[] }[]
+}
+
+export async function fetchEmailAutomations(): Promise<EmailAutomationState> {
+  const response = await apiClient.get("/crm/email-automations/")
+  return response.data
+}
+
+export async function updateEmailAutomation(event: string, change: { enabled?: boolean; template?: number }): Promise<EmailAutomationState> {
+  const response = await apiClient.patch(`/crm/email-automations/${event}/`, change)
+  return response.data
+}
+
+export async function setEmailAutomationsEnabled(enabled: boolean): Promise<EmailAutomationState> {
+  const response = await apiClient.post("/crm/email-automations/master/", { enabled })
+  return response.data
+}
+
+export async function restoreDefaultEmailTemplates(): Promise<{ created: number }> {
+  const response = await apiClient.post("/crm/email-templates/restore-defaults/")
+  return response.data
+}
+
+// ---------------------------------------------------------------------------
+// Email integration (admin panel -> Integrations -> Email; full admins only)
+// ---------------------------------------------------------------------------
+
+export type EmailSecurity = "tls" | "ssl" | "none"
+
+export interface EmailIntegrationState {
+  source: "admin" | "env" | "none"
+  configured: boolean
+  provider: string
+  smtp_host: string
+  smtp_port: number
+  security: EmailSecurity
+  username: string
+  has_password: boolean
+  password_hint: string
+  from_name: string
+  from_email: string
+  reply_to: string
+  shared_mailbox: string
+  default_cc: string
+  default_bcc: string
+  cc_sender: boolean
+  cc_shared_mailbox: boolean
+  company_name: string
+  brand_color: string
+  signature: string
+  footer_text: string
+  imap_enabled: boolean
+  imap_host: string
+  imap_port: number
+  last_test_at: string | null
+  last_test_ok: boolean | null
+  last_error: string
+  updated_at: string
+  stats: { sent_30d: number; failed_30d: number; replies_30d: number; last_sent_at: string | null }
+}
+
+export type EmailIntegrationInput = Partial<Omit<EmailIntegrationState,
+  "source" | "configured" | "has_password" | "password_hint" | "shared_mailbox" | "last_test_at" | "last_test_ok" | "last_error" | "updated_at" | "stats"
+>> & { password?: string }
+
+export interface EmailConnectionTest {
+  smtp: { ok: boolean; detail: string }
+  imap: { ok: boolean; detail: string } | null
+  /** Set when the mailbox's domain is hosted somewhere other than the configured server. */
+  hint: string
+  state: EmailIntegrationState
+}
+
+export async function fetchEmailIntegration(): Promise<EmailIntegrationState> {
+  const response = await apiClient.get("/crm/email-integration/settings/")
+  return response.data
+}
+
+export async function updateEmailIntegration(payload: EmailIntegrationInput): Promise<EmailIntegrationState> {
+  const response = await apiClient.patch("/crm/email-integration/settings/", payload)
+  return response.data
+}
+
+export async function testEmailConnection(): Promise<EmailConnectionTest> {
+  const response = await apiClient.post("/crm/email-integration/test/")
+  return response.data
+}
+
+export async function sendTestEmail(to: string): Promise<{ detail: string }> {
+  const response = await apiClient.post("/crm/email-integration/send-test/", { to })
+  return response.data
+}
+
+export async function resetEmailIntegration(): Promise<EmailIntegrationState> {
+  const response = await apiClient.post("/crm/email-integration/reset/")
   return response.data
 }
 

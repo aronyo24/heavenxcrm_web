@@ -30,6 +30,7 @@ import ActivityFeed from "@/pages/admin/ActivityFeed";
 import ManagerManagement from "@/pages/admin/ManagerManagement";
 import UsersList from "@/pages/admin/UsersList";
 import UserDetail from "@/pages/admin/UserDetail";
+import EmailIntegrationPage from "@/pages/admin/EmailIntegration";
 
 // This app hosts the CRM and admin halves of HeavenxCRM's frontend,
 // split out so it can be deployed on its own staff-only domain/subdomain
@@ -78,6 +79,8 @@ export default function App() {
               <Route path="users" element={<UsersList />} />
               <Route path="users/:id" element={<UserDetail />} />
               <Route path="integrations/facebook" element={<FacebookIntegrationPage />} />
+              <Route path="integrations/email" element={<EmailIntegrationPage />} />
+              <Route path="settings" element={<ProfileSettings />} />
             </Route>
             <Route path="/" element={<Navigate to="/crm" replace />} />
             <Route path="*" element={<Navigate to="/crm" replace />} />

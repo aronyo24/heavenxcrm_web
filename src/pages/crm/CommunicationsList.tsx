@@ -53,6 +53,16 @@ function EmailToCcLine({ log }: { log: CommunicationLog }) {
           <span className="font-medium text-foreground/60">Cc</span> {log.cc_email}
         </p>
       )}
+      {log.bcc_email && (
+        <p className="text-xs text-muted-foreground truncate">
+          <span className="font-medium text-foreground/60">Bcc</span> {log.bcc_email}
+        </p>
+      )}
+      {log.attachment_names?.length ? (
+        <p className="text-xs text-muted-foreground truncate">
+          <span className="font-medium text-foreground/60">Attached</span> {log.attachment_names.join(", ")}
+        </p>
+      ) : null}
     </div>
   )
 }

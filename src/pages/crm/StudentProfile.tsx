@@ -27,38 +27,20 @@ import { LeadFormCard } from "@/components/crm/LeadFormCard"
 import { StudentEditSheet } from "@/components/crm/StudentEditSheet"
 import { ApplicationDetailSheet } from "@/components/crm/ApplicationDetailSheet"
 import {
-  assignStudentCounselor, changeApplicationStatus, changeStudentStage, completeTask,
+  assignStudentCounselor, changeApplicationStatus, changeStudentLeadStatus, changeStudentStage, completeTask,
   fetchCounselors, fetchPipelineStages, fetchStudent, fetchStudentApplications, fetchStudentMessages,
   fetchStudentRecommendations, fetchTasks, sendStudentMessage,
 } from "@/lib/crm-api"
+import { APPLICATION_STATUS_COLOR, APPLICATION_STATUSES, applicationStatusLabel } from "@/lib/application-status"
 import { formatTuition } from "@/lib/format"
+import { LEAD_STATUS_DOT, LEAD_STATUSES } from "@/lib/lead-status"
 import { useAuth } from "@/lib/auth"
 import { studentIdFromSlug, studentPath, studentSlug } from "@/lib/student-url"
 import { cn } from "@/lib/utils"
 import type {
-  ApplicationListItem, ApplicationStatus, Counselor, CrmMessage, PipelineStage, Student,
+  ApplicationListItem, ApplicationStatus, Counselor, CrmMessage, LeadStatus, PipelineStage, Student,
   StudentRecommendation, Task,
 } from "@/lib/crm-types"
-
-const APPLICATION_STATUS_OPTIONS: { value: ApplicationStatus; label: string }[] = [
-  { value: "submitted", label: "Submitted" },
-  { value: "under_review", label: "Under Review" },
-  { value: "documents_requested", label: "Documents Requested" },
-  { value: "offer_received", label: "Offer Received" },
-  { value: "enrolled", label: "Enrolled" },
-  { value: "rejected", label: "Rejected" },
-  { value: "withdrawn", label: "Withdrawn" },
-]
-
-const APPLICATION_STATUS_COLOR: Record<ApplicationStatus, string> = {
-  submitted: "border-sky-500/30 bg-sky-500/10 text-sky-600",
-  under_review: "border-indigo-500/30 bg-indigo-500/10 text-indigo-600",
-  documents_requested: "border-amber-500/30 bg-amber-500/10 text-amber-600",
-  offer_received: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600",
-  enrolled: "border-emerald-600/30 bg-emerald-600/10 text-emerald-700",
-  rejected: "border-red-500/30 bg-red-500/10 text-red-600",
-  withdrawn: "border-border bg-muted text-muted-foreground",
-}
 
 const PRIORITY_STYLE: Record<string, string> = {
   high: "border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400",
@@ -167,7 +149,7 @@ function PipelineStepper({
   return (
     <div className="rounded-2xl border bg-card p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Status</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Pipeline status</p>
         {lostStage && !isLost ? (
           <button
             type="button"
@@ -478,9 +460,20 @@ export default function StudentProfile() {
     try {
       const updated = await changeStudentStage(student.id, stageKey)
       setStudent(updated)
-      toast.success(`Status changed to ${updated.stage_label}`)
+      toast.success(`Pipeline status changed to ${updated.stage_label}`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to update status")
+    }
+  }
+
+  const handleLeadStatusChange = async (leadStatus: LeadStatus) => {
+    if (!student) return
+    try {
+      const updated = await changeStudentLeadStatus(student.id, leadStatus)
+      setStudent(updated)
+      toast.success(`Lead status changed to ${LEAD_STATUSES.find((s) => s.value === leadStatus)?.label ?? leadStatus}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update lead status")
     }
   }
 
@@ -634,7 +627,7 @@ export default function StudentProfile() {
                   </a>
                 </Button>
               ) : null}
-              <SendEmailDialog studentId={student.id} studentEmail={student.email} onSent={refreshActivity} />
+              <SendEmailDialog studentId={student.id} studentEmail={student.email} studentName={student.full_name} onSent={refreshActivity} />
               <Button size="sm" className="gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => setEditing(true)}>
                 <Pencil className="h-3.5 w-3.5" /> Edit profile
               </Button>
@@ -651,6 +644,25 @@ export default function StudentProfile() {
                   {[student.target_degree, student.target_country].filter(Boolean).join(" in ")}
                 </span>
               ) : null}
+            </div>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <div className="flex items-center gap-2.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Lead status</span>
+              <Select value={student.lead_status} onValueChange={(v) => void handleLeadStatusChange(v as LeadStatus)}>
+                <SelectTrigger className="h-8 w-44">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LEAD_STATUSES.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      <span className="flex items-center gap-2">
+                        <span className={cn("h-2 w-2 rounded-full", LEAD_STATUS_DOT[s.value])} />
+                        {s.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center gap-2.5">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Counselor</span>
@@ -673,6 +685,7 @@ export default function StudentProfile() {
                 </span>
               )}
             </div>
+            </div>
           </div>
         </div>
       </div>
@@ -692,14 +705,14 @@ export default function StudentProfile() {
           </div>
         </button>
         <StatTile
-          icon={Hourglass} label="In this status" tone="bg-indigo-100 text-indigo-600 dark:bg-indigo-500/15"
+          icon={Hourglass} label="In pipeline status" tone="bg-indigo-100 text-indigo-600 dark:bg-indigo-500/15"
           value={`${daysSince(student.stage_changed_at)} days`}
           hint={`Student for ${daysSince(student.created_at)} days`}
         />
         <StatTile
           icon={FileText} label="Applications" tone="bg-sky-100 text-sky-600 dark:bg-sky-500/15"
           value={applications.length}
-          hint={applications.some((a) => a.status === "offer_received") ? "Offer received 🎉" : applications.length ? "In progress" : "None yet"}
+          hint={applications.some((a) => a.status === "unconditional") ? "Unconditional offer 🎉" : applications.length ? "In progress" : "None yet"}
         />
         <StatTile
           icon={ListChecks} label="Open tasks"
@@ -878,16 +891,16 @@ export default function StudentProfile() {
                             <FileText className="h-3.5 w-3.5" /> Details
                           </Button>
                           <Badge variant="outline" className={APPLICATION_STATUS_COLOR[app.status]}>
-                            {APPLICATION_STATUS_OPTIONS.find((o) => o.value === app.status)?.label ?? app.status}
+                            {applicationStatusLabel(app.status)}
                           </Badge>
                           <Select
                             value={app.status}
                             onValueChange={(v) => void handleApplicationStatusChange(app.id, v as ApplicationStatus)}
                             disabled={applicationUpdating === app.id}
                           >
-                            <SelectTrigger className="h-8 w-44 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="h-8 w-56 text-xs"><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              {APPLICATION_STATUS_OPTIONS.map((o) => (
+                              {APPLICATION_STATUSES.map((o) => (
                                 <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                               ))}
                             </SelectContent>

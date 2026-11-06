@@ -33,12 +33,11 @@ function greeting(hour: number) {
 // Same palette as StageBadge so the funnel matches the rest of the CRM.
 const STAGE_BAR: Record<string, string> = {
   new: "bg-slate-400",
-  contacted: "bg-blue-500",
-  counseling: "bg-indigo-500",
   applied: "bg-purple-500",
-  offer: "bg-amber-500",
-  visa: "bg-cyan-500",
+  awaiting_sfe: "bg-amber-500",
+  sfe_approved: "bg-cyan-500",
   enrolled: "bg-emerald-500",
+  deferred: "bg-blue-500",
 }
 
 function Panel({

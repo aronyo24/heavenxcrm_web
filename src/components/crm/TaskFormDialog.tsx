@@ -36,6 +36,7 @@ const taskSchema = z.object({
   task_type: z.enum(["task", "reminder", "appointment", "call", "follow_up"]),
   due_at: z.date(),
   priority: z.enum(["low", "medium", "high"]),
+  notify_student: z.boolean(),
 })
 
 type TaskFormValues = z.infer<typeof taskSchema>
@@ -68,7 +69,7 @@ export function TaskFormDialog({
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
-    defaultValues: { title: "", description: "", task_type: "task", priority: "medium" },
+    defaultValues: { title: "", description: "", task_type: "task", priority: "medium", notify_student: true },
   })
 
   const onSubmit = async (values: TaskFormValues) => {
@@ -79,6 +80,7 @@ export function TaskFormDialog({
         task_type: values.task_type,
         due_at: values.due_at.toISOString(),
         priority: values.priority,
+        notify_student: values.notify_student,
         student: studentId ?? null,
       })
       toast.success("Task created")
@@ -208,6 +210,29 @@ export function TaskFormDialog({
                 </FormItem>
               )}
             />
+
+            {studentId ? (
+              <FormField
+                control={form.control}
+                name="notify_student"
+                render={({ field }) => (
+                  <FormItem>
+                    <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border p-3">
+                      <input
+                        type="checkbox" checked={field.value} onChange={(e) => field.onChange(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 accent-emerald-600"
+                      />
+                      <span>
+                        <span className="block text-sm font-medium">Email the student about this task</span>
+                        <span className="block text-xs text-muted-foreground">
+                          They will see the title and date. The description stays internal.
+                        </span>
+                      </span>
+                    </label>
+                  </FormItem>
+                )}
+              />
+            ) : null}
 
             <DialogFooter>
               <Button type="submit" disabled={form.formState.isSubmitting}>
