@@ -23,7 +23,7 @@ const config = {
 export default config;
 
 // Validate required vars on startup
-const required = ['VITE_API_BASE_URL', 'VITE_OLLAMA_URL'] as const;
+const required = ['VITE_API_BASE_URL'] as const;
 required.forEach((key) => {
   if (!import.meta.env[key]) {
     console.warn(`Warning: Missing env var: ${key}`);
